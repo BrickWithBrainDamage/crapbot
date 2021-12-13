@@ -1,0 +1,15 @@
+{
+  "name": "crapbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^13.4.0-dev.1639137780.ee91f5a"
+  }
+}
