@@ -1,10 +1,11 @@
+//get ready for code worse than yandere simulator
+"use strict"
 const { Client, Intents } = require('discord.js');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_PRESENCES] });
 const fs = require('fs');
-"use strict"
 
 //thigns to manually change 
-const token = 'NzkwNDY2MDEyOTc2Nzc1MTY4.X-BA1w.vZEDnCr2ArQL2XhRn8m3Z4AACus'
+const token = process.argv[2]
 const prefix = '!'
 const adminId = ['691864484079337543', '501587282395004929']
 
@@ -21,7 +22,8 @@ const helpMessages = {
 \`daily\`: claim your daily reward
 \`learn\` [place|"list"]: Go somewhere to learn so you can earn XP.
 \`piracy\`: Sick of earning money the legitimate way? pirate and distribute the latest film for a lot of money!
-\`arson\`: Burn down a random player's house.`,
+\`arson\`: Burn down a random player's house.
+\`bribe\`: Bribe a politician for lower tax rates for one day.`,
     'admin': `**ADMINISTRATION**
 These commands are only avaliable to the admin whose ID exists within the index.js file
 \`clearall\`: USE WITH CAUTION, will delete EVERYONE's data
@@ -75,20 +77,9 @@ function readDB() {
         })
     })
 }
-function readXP() {
-    return new Promise((resolve) => {
-        fs.readFile('./xpprefix.txt', 'utf-8', (error, contents) => {
-            if (error) console.log(error)
-            resolve(contents)
-        })
-    })
-}
 let experiences = {
 
 }
-readXP().then((content) => {
-    experiences = JSON.parse(content)
-})
 let usersWithoutPronouns = []
 function save() {
     fs.writeFile('./basicDB.txt', JSON.stringify(db, null, 1), (error) => {
@@ -127,8 +118,8 @@ readDB().then(results => {
             db[item].netWorth += db.adminData.housesOwned[item] * 10
         }
         for (let item in db.adminData.mansionOwned) {
-            db[item].money += db.adminData.mansionOwned[item] * 120
-            db[item].netWorth += db.adminData.mansionOwned[item] * 120
+            db[item].money += db.adminData.mansionOwned[item] * 1200
+            db[item].netWorth += db.adminData.mansionOwned[item] * 1200
         }
     }, 1000)
     function commentNo(a) {
@@ -238,7 +229,8 @@ readDB().then(results => {
                             'lastPaidTax': datetest1.getDate(),
                             'taxRate': 0.15,
                             'taxMultiplier': 1,
-                            'lastArson': 0
+                            'lastArson': 0,
+                            'bribed': false
                         }
                     }
                     //backwards compadibility by adding in keys not from previous versions
@@ -250,6 +242,9 @@ readDB().then(results => {
                     }
                     if (!db[message.author.id].hasOwnProperty('lastArson')) {
                         db[message.author.id].lastArson = 0
+                    }
+                    if (!db[message.author.id].hasOwnProperty('bribed')) {
+                        db[message.author.id].bribed = false
                     }
                     if (!db[message.author.id].hasOwnProperty('lastPaidTax')) {
                         let date = new Date()
@@ -283,6 +278,7 @@ readDB().then(results => {
                             let date = new Date()
                             if (messageAuthor.lastPaidTax != date.getDate()) {
                                 //determine a person's tax bracket by their net worth
+                                //yanderedev can you please hire me
                                 if (messageAuthor.money < 10000) {
                                     messageAuthor.taxRate = .1
                                 } else if (messageAuthor.money < 200000) {
@@ -298,10 +294,12 @@ readDB().then(results => {
                                 }
                                 messageAuthor.lastPaidTax = date.getDate()
                                 let amountToPay = messageAuthor.money * messageAuthor.taxRate * messageAuthor.taxMultiplier
+                                if (messageAuthor.bribed) amountToPay = amountToPay / 2
                                 messageAuthor.money -= amountToPay
                                 messageAuthor.netWorth -= amountToPay
 
                                 message.channel.send(`Welcome to a new day! You paid $${commentNo(amountToPay)} in taxes because the Government hates you. You now have $${commentNo(messageAuthor.money)} remaining. Your tax rate is ${Math.round(messageAuthor.taxRate * messageAuthor.taxMultiplier * 100)}%.`)
+                                messageAuthor.bribed = false
                             }
                             let parsedMessage = message.content.replace(/\s{2,}/g, ' ').replace('!', '').split(' ')
                             if (adminId.includes(message.author.id)) {
@@ -455,8 +453,9 @@ readDB().then(results => {
                                     let now = arsonDate.getTime()
                                     if (now - parseInt(messageAuthor.lastArson) > 240000) {
                                         let allPlayers = Object.keys(db.adminData.housesOwned)
-                                        allPlayers.splice(allPlayers.indexOf(message.author.id))
-                                        allPlayers = allPlayers.filter(e => db.adminData.housesOwned[e] >= 10)
+                                        allPlayers.splice(allPlayers.indexOf(message.author.id), 1)
+                                        message.channel.send(JSON.stringify(allPlayers))
+                                        allPlayers = allPlayers.filter(e => db.adminData.housesOwned[e] >= 100)
                                         if (allPlayers.length >= 1) {
                                             messageAuthor.lastArson = now
                                             let player = allPlayers[Math.floor(Math.random() * allPlayers.length)]
@@ -636,9 +635,9 @@ readDB().then(results => {
                                             customCode: function (amount) {
                                                 if (amount < 5) {
                                                     if (Math.random() < 0.004) {
-                                                        messageAuthor.money += 20000
-                                                        messageAuthor.netWorth += 20000
-                                                        message.channel.send(`You won big! $20000 has been added to your account for a total of $${commentNo(messageAuthor.money)}`)
+                                                        messageAuthor.money += 7500
+                                                        messageAuthor.netWorth += 7500
+                                                        message.channel.send(`You won big! $7500 has been added to your account for a total of $${commentNo(messageAuthor.money)}`)
                                                     } else {
                                                         message.channel.send('Tough luck. You lost the lotto.')
                                                     }
@@ -647,8 +646,9 @@ readDB().then(results => {
                                                     for (let i = 0; i < amount; i++) {
                                                         if (Math.random() < 0.04) wonLotteryTimes++
                                                     }
-                                                    messageAuthor.money += wonLotteryTimes * 20000
-                                                    message.channel.send(`You brought ${amount} lottery tickets. You won the lottery ${wonLotteryTimes} times and lost it ${amount - wonLotteryTimes}. $${commentNo(wonLotteryTimes * 20000)} has been added to your account.`)
+                                                    messageAuthor.money += wonLotteryTimes * 7500
+                                                    messageAuthor.netWorth += wonLotteryTimes * 7500
+                                                    message.channel.send(`You brought ${amount} lottery tickets. You won the lottery ${wonLotteryTimes} times and lost it ${amount - wonLotteryTimes}. $${commentNo(wonLotteryTimes * 7500)} has been added to your account.`)
                                                 }
                                             }
                                         },
@@ -688,7 +688,7 @@ readDB().then(results => {
                                                     message.channel.send("The real estate agency said that you have to prove your worth before buying a mansion. Please purchase at least 10 houses")
                                                 }
                                             },
-                                            'description': '**🏛Mansion($10,000,000)**: even more expensive than houses, giving you $120 per second!',
+                                            'description': '**🏛Mansion($10,000,000)**: even more expensive than houses, giving you $1200 per second!',
                                             customCode: function () {
                                                 if (!db.adminData.mansionOwned.hasOwnProperty(message.author.id)) {
                                                     db.adminData.mansionOwned[message.author.id] = 0
@@ -751,8 +751,8 @@ readDB().then(results => {
                                 case 'help':
                                     let messageToSendHelp = helpMessages.prefix
                                     if (parsedMessage[1] != undefined) {
-                                        if (helpMessages.hasOwnProperty(parsedMessage[1])) {
-                                            messageToSendHelp += helpMessages[parsedMessage[1]]
+                                        if (helpMessages.hasOwnProperty(parsedMessage[1].toLowerCase())) {
+                                            messageToSendHelp += helpMessages[parsedMessage[1].toLowerCase()]
                                         } else {
                                             messageToSendHelp += `Help message ${parsedMessage[1]} not found!`
                                         }
@@ -830,8 +830,8 @@ readDB().then(results => {
                                                 break
                                             }
                                             if (item.toLowerCase() == parsedMessage[1].toLowerCase()) {
+                                                placeFound = true
                                                 if (messageAuthor.money >= places[item].cost) {
-                                                    placeFound = true
                                                     messageAuthor.money -= places[item].cost
                                                     messageAuthor.expToNextLevel -= places[item].xp
                                                     message.channel.send(`Success! You now have $${messageAuthor.money}`)
@@ -845,7 +845,7 @@ readDB().then(results => {
                                     break
                                 case 'work':
                                     //functionality for working
-                                    let moneyEarned = Math.round(Math.random() * 10 * (messageAuthor.level) + 3) / 10 + messageAuthor.level * 2
+                                    let moneyEarned = Math.round(Math.random() * 10 * messageAuthor.level + 3 / 10 + messageAuthor.level ** 2 / 3)
                                     let xpEarned = moneyEarned * 3 * Math.random()
                                     const possibleJobs = ['washed the car',
                                         'helped the neighbour commit arson',
@@ -877,22 +877,40 @@ readDB().then(results => {
                                     break
                                 case 'info':
                                     //if there is a mention, then use that find the user for taht mention. Else, use the user who sent the message
+                                    let laptopsOwned
                                     let housesOwned
+                                    let mansionOwned
                                     if (message.mentions.users.first()) {
                                         messageAuthor = db[message.mentions.users.first().id]
                                         laptopsOwned = db.adminData.laptopsOwned[message.mentions.users.first().id]
                                         housesOwned = db.adminData.housesOwned[message.mentions.users.first().id]
+                                        mansionOwned = db.adminData.mansionOwned[message.mentions.users.first().id]
                                     } else {
                                         messageAuthor = db[message.author.id]
                                         laptopsOwned = db.adminData.laptopsOwned[message.author.id]
                                         housesOwned = db.adminData.housesOwned[message.author.id]
+                                        mansionOwned = db.adminData.mansionOwned[message.author.id]
                                     }
                                     if (laptopsOwned == undefined) laptopsOwned = 0
                                     if (housesOwned == undefined) housesOwned = 0
+                                    if (mansionOwned == undefined) mansionOwned = 0
                                     try {
-                                        message.channel.send(`**===Information for ${messageAuthor.username}===**\nLevel: ${messageAuthor.level} (${Math.round(messageAuthor.expToNextLevel * 100) / 100} XP until level up)\nMoney: $${commentNo(Math.round(messageAuthor.money * 100) / 100)}\nComputer(s) owned: ${laptopsOwned}\nHouses owned: ${housesOwned}\n **===Statistics===**\nMessages sent: ${messageAuthor.messageCount}\nTimes worked: ${messageAuthor.timesWorked}`)
+                                        message.channel.send(`**===Information for ${messageAuthor.username}===**\nLevel: ${messageAuthor.level} (${Math.round(messageAuthor.expToNextLevel * 100) / 100} XP until level up)\nMoney: $${commentNo(Math.round(messageAuthor.money * 100) / 100)}\nComputer(s) owned: ${laptopsOwned}\nHouses owned: ${housesOwned}\nMansions owned: ${mansionOwned}\n**===Statistics===**\nMessages sent: ${messageAuthor.messageCount}\nTimes worked: ${messageAuthor.timesWorked}`)
                                     } catch (e) {
                                         message.channel.send(`Error retrieving user info! This is probably because the user has never used this bot. ${e.message}`)
+                                    }
+                                    break
+                                case 'bribe':
+                                    if (!messageAuthor.bribed) {
+                                        if (messageAuthor.money >= 1000000) {
+                                            messageAuthor.money -= 1000000
+                                            messageAuthor.bribed = true
+                                            message.channel.send("Bribed politician! You will enjoy lower tax rates tomorrow")
+                                        } else {
+                                            message.channel.send("Insufficent money to bribe politician!")
+                                        }
+                                    } else {
+                                        message.channel.send("You've already bribed a politician!")
                                     }
                                     break
                                 case 'richest':
@@ -950,10 +968,10 @@ readDB().then(results => {
 
                             //level up, put at the end of the thing
                             let leveledUp = false
-                            while (db[message.author.id].expToNextLevel < 0) {
+                            while (db[message.author.id].expToNextLevel <= 0) {
                                 leveledUp = true
                                 db[message.author.id].level++
-                                db[message.author.id].expToNextLevel = experiences[db[message.author.id].level] - Math.abs(db[message.author.id].expToNextLevel)
+                                db[message.author.id].expToNextLevel = Math.ceil((messageAuthor.level ** 2) / 3 + 15) - (db[message.author.id].expToNextLevel)
                             }
                             if (leveledUp) message.channel.send(`Congratulations to ${message.author.username}! You have reached level ${db[message.author.id].level}! You need ${Math.round(messageAuthor.expToNextLevel * 100) / 100} XP to the next level`)
                             if (Math.random() < .1 && !quicktimeTypeInProgress) {
@@ -976,7 +994,7 @@ readDB().then(results => {
                     if (quicktimeTypeInProgress && message.content == quicktimeTypePhrase) {
                         clearTimeout(quicktimeTimeout)
                         quicktimeTypeInProgress = false
-                        let gainMoney = Math.round(Math.random() * 500) + 500
+                        let gainMoney = Math.round(Math.random() * 500) + 500 + messageAuthor.money * 0.01
                         messageAuthor.money += gainMoney
                         message.channel.send(`Congratulations to ${message.author.username}, who typed the phrase first! ${messageAuthor.pronoun} recieved $${gainMoney}`)
                     }
