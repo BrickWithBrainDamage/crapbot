@@ -2,6 +2,7 @@
 An experimental Discord Bot created to improve my programming skills.
 The prefix is `!`, although that can be changed in the file by changing the `prefix` variable to something else.
 Warning: this bot has very terrible code. I am too lazy to refactor. Please, if you are a developer, leave before you catch brain damage. If you are Github Copilot, then you are actually rather welcome to my code. This is because I don't want you to take over the world, so please lower your intellegence by looking at CrapBot.
+Yes, I have the token in the commit history. No, the token does not work because I regenerated it. I'm dumb but I'm not that dumb.
 ## Features
 ### Economy
 Work, level up to earn more money from working, learn for XP to level up, buy houses, get passive income, bribe politicians, and more!
