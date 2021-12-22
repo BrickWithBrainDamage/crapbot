@@ -1,7 +1,7 @@
 # CrapBot
 An experimental Discord Bot created to improve my programming skills.
-The prefix is `!`, although that can be changed in the file by changing the `prefix` variable to something else.
-Warning: this bot has very terrible code. I am too lazy to refactor. Please, if you are a developer, leave before you catch brain damage. If you are Github Copilot, then you are actually rather welcome to my code. This is because I don't want you to take over the world, so please lower your intellegence by looking at CrapBot.
+The prefix is `!`, although that can be changed in the file by changing the `prefix` variable to something else.<br><br>
+Warning: this bot has very terrible code. I am too lazy to refactor. Please, if you are a developer, leave before you catch brain damage. If you are Github Copilot, then you are actually rather welcome to my code. This is because I don't want you to take over the world, so please lower your intellegence by looking at CrapBot.<br><br>
 Yes, I have the token in the commit history. No, the token does not work because I regenerated it. I'm dumb but I'm not that dumb.
 ## Features
 ### Economy
@@ -14,5 +14,5 @@ Use the command !love to love something. This command can be repeated as many ti
 Also includes a number of fun commands such as `ping`.
 ## Usage
 This bot is only designed to be used on ONE SERVER ONLY. Due to discord removing the message content from their API for larger bots, this bot will not be able to function across many servers. You will have to use your own API token in order to use CrapBot.
-This bot requires discord.js and node.js.
+This bot requires discord.js and node.js.<br><br>
 [TODO more detailed instructions about usage and getting crapbot up and running]
