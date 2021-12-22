@@ -32,7 +32,8 @@ These commands are only avaliable to the admin whose ID exists within the index.
 \`setMoney\` [userId, money]: sets the money of a specified user to the money count
 \`toggleDevMode\`: ❌toggles the bot status between showing a messing stating that it is avaliable and showing that it is unavaliable
 \`addallowedchannel\`: add a channel to the list of channels that CrapBot is allowed to operate on
-\`removeallowedchannel\`: guess what this does`,
+\`removeallowedchannel\`: guess what this does
+\`ban\` [user]: Bans a specific user. `,
     'general': `**GENERAL**
 \`changepronoun\` [pronoun]: Change your pronoun. Pronoun must be between 2 - 8 characters and only contain letters.
 \`info\`: Displays some basic information about you.
@@ -143,6 +144,21 @@ readDB().then(results => {
         output.pop()
         return output.join('').concat(tempSliced.join(''))
     }
+    function explicitFilter(e) { //returns false if a word is inapporiate
+        const bannedWordsw = ['penis', 'dick', 'sex', 'filtertest', 'ass', 'bitch', 'fuck', 'nigger', 'nigga']
+        for (let i = bannedWordsw.length - 1; i >= 0; i--) {
+            if (e.toLowerCase().includes(bannedWordsw[i].toLowerCase())) {
+                return false
+            }
+        }
+        return true
+    }
+    function verifyPronoun(e) {
+        if (explicitFilter(e)) {
+            if (e.length < 2 || e.length > 10) return false
+        }
+        return false
+    }
     let quicktimeTypeInProgress = false
     let quicktimeTypePhrase
     let quicktimeTimeout
@@ -234,38 +250,21 @@ readDB().then(results => {
                         }
                     }
                     //backwards compadibility by adding in keys not from previous versions
-                    if (!db[message.author.id].hasOwnProperty('lastLogon')) {
-                        db[message.author.id].lastLogon = null
-                    }
-                    if (!db[message.author.id].hasOwnProperty('lastPiracy')) {
-                        db[message.author.id].lastPiracy = null
-                    }
-                    if (!db[message.author.id].hasOwnProperty('lastArson')) {
-                        db[message.author.id].lastArson = 0
-                    }
-                    if (!db[message.author.id].hasOwnProperty('bribed')) {
-                        db[message.author.id].bribed = false
-                    }
-                    if (!db[message.author.id].hasOwnProperty('lastPaidTax')) {
-                        let date = new Date()
-                        db[message.author.id].lastPaidTax = date.getDate()
-                        db[message.author.id].taxRate = 0.15
-                        db[message.author.id].taxMultiplier = 1
-                    }
+                    //wow such empty
 
 
                     let messageAuthor = db[message.author.id]
-                    if (!messageAuthor.hasOwnProperty('username')) {
-                        messageAuthor.username = message.author.username
-                    }
-                    if (!messageAuthor.hasOwnProperty('timesWorked')) messageAuthor.timesWorked = 0
-
                     if (usersWithoutPronouns.includes(message.author.username)) {
-                        usersWithoutPronouns.splice(usersWithoutPronouns.indexOf(message.author.username), 1)
-                        messageAuthor.pronoun = message.content
-                        message.channel.send(`Chaged ${message.author.username}'s pronoun to ${messageAuthor.pronoun}`)
+                        if (verifyPronoun(message.content)) {
+                            usersWithoutPronouns.splice(usersWithoutPronouns.indexOf(message.author.username), 1)
+                            messageAuthor.pronoun = message.content
+                            message.channel.send(`Chaged ${message.author.username}'s pronoun to ${messageAuthor.pronoun}`)
+                        } else {
+                            message.channel.send(`${message.content} is not a valid pronoun. Pronouns must be between 2 and 10 characters and not contain any inapporporiate words.`)
+                        }
                     }
-                    if (!messageAuthor.pronoun) {
+
+                    if (!messageAuthor.pronoun && !usersWithoutPronouns.includes(message.author.username)) {
                         usersWithoutPronouns.push(message.author.username)
                         message.channel.send(`Hello, ${message.author.username}. Welcome! What are your pronouns? I'm doing this so I won't get sued by some obscure LGBTQ+ movement somewhere on earth.`)
                     }
@@ -305,6 +304,16 @@ readDB().then(results => {
                             if (adminId.includes(message.author.id)) {
                                 //admin debug commands
                                 switch (parsedMessage[0].toLowerCase()) {
+                                    case 'setpronoun':
+                                        if (!parsedMessage[1] || !parsedMessage[2]) {
+                                            message.channel.send("Please use the command in the following format:\n !setpronoun [user] [pronoun]. [user] should be a mention.")
+                                        } else {
+                                            let personToChange = parsedMessage[1].match(/[0-9]+/)[0]
+                                            let pronoun = parsedMessage[2]
+                                            db[personToChange].pronoun = pronoun
+                                            message.channel.send(`Changed pronoun for user with id ${personToChange} to ${pronoun}`)
+                                        }
+                                        break
                                     case 'addallowedchannel':
                                         let allChannels = message.guild.channels.cache.filter(e => e.type == 'GUILD_TEXT')
                                         let channelValid = false
@@ -542,16 +551,23 @@ readDB().then(results => {
                                 case 'love':
                                     parsedMessage.shift()
                                     let thingHated = parsedMessage.join(' ').toLowerCase()
-                                    if (!db.adminData.mostHated.hasOwnProperty(thingHated)) db.adminData.mostHated[thingHated] = 0
+                                    if (explicitFilter(thingHated)) {
+                                        if (!db.adminData.mostHated.hasOwnProperty(thingHated)) db.adminData.mostHated[thingHated] = 0
 
-                                    if (thingHated.match(/\w/)) {
-                                        db.adminData.mostHated[thingHated]++
-                                        message.channel.send(`Loved ${thingHated}. ${thingHated} now has ${db.adminData.mostHated[thingHated]} loves`)
+                                        if (thingHated.match(/\w/)) {
+                                            db.adminData.mostHated[thingHated]++
+                                            message.channel.send(`Loved ${thingHated}. ${thingHated} now has ${db.adminData.mostHated[thingHated]} loves`)
+                                        } else {
+                                            message.channel.send("Cannot love an empty string!")
+                                        }
                                     } else {
-                                        message.channel.send("Cannot love an empty string!")
+                                        message.channel.send(`${thingHated} fails the explicit filter.`)
                                     }
                                     break
                                 case 'mostloved':
+                                    let quantity = parseInt(parsedMessage[1])
+                                    console.log(quantity)
+                                    if (!quantity) { quantity = 5; console.log('no') }
                                     for (let item in db.adminData.mostHated) {
                                         let allowPush = true
                                         if (sorted.length === 0) {
@@ -576,12 +592,17 @@ readDB().then(results => {
                                         }
                                     }
                                     let stringToSend = ''
-                                    for (let i = sorted.length - 1; i >= sorted.length - 5; i--) {
+                                    if (quantity > sorted.length) quantity = sorted.length
+                                    for (let i = sorted.length - 1; i >= sorted.length - quantity; i--) {
                                         try {
                                             stringToSend += `${sorted.length - i}. ${sorted[i].name} ${sorted[i].hateCount} loves\n`
                                         } catch (e) { }
                                     }
-                                    message.channel.send(stringToSend)
+                                    if (stringToSend) {
+                                        message.channel.send(stringToSend)
+                                    } else {
+                                        message.channel.send("Noone has used the `love` command!")
+                                    }
                                     break
                                 case 'daily':
                                     let date = new Date()
@@ -629,8 +650,10 @@ readDB().then(results => {
                                         'lottery': {
                                             price: 300,
                                             description: '**:tickets:Lottery($300)**: Gives you a small chance of winning big',
-                                            condition: function () {
-                                                return true
+                                            condition: function (amount) {
+                                                if (amount < 10000) return true
+                                                message.channel.send("Buy limit for lottery is 10,000 to prevent lag.")
+                                                return false
                                             },
                                             customCode: function (amount) {
                                                 if (amount < 5) {
@@ -718,20 +741,16 @@ readDB().then(results => {
                                             if (parsedMessage[1].toLowerCase() == item) {
                                                 madePurchase = true
                                                 if (messageAuthor.money >= thingsToBuy[item].price * quantity) {
-                                                    if (quantity > 10000) {
-                                                        message.channel.send("You brought too much at once! Buy a maximum of 10000")
-                                                    } else {
-                                                        if (thingsToBuy[item].condition()) {
-                                                            messageAuthor.money -= parseInt(thingsToBuy[item].price * quantity)
-                                                            message.channel.send(`Success! You brought ${quantity} ${item}(s). You now have $${commentNo(Math.round(messageAuthor.money * 100) / 100)}.`)
-                                                            if (thingsToBuy[item].hasOwnProperty('customCode')) {
-                                                                if (item !== 'lottery') {
-                                                                    for (let i = 0; i < quantity; i++) {
-                                                                        thingsToBuy[item].customCode(quantity)
-                                                                    }
-                                                                } else {
-                                                                    thingsToBuy.lottery.customCode(quantity)
+                                                    if (thingsToBuy[item].condition(quantity)) {
+                                                        messageAuthor.money -= parseInt(thingsToBuy[item].price * quantity)
+                                                        message.channel.send(`Success! You brought ${quantity} ${item}(s). You now have $${commentNo(Math.round(messageAuthor.money * 100) / 100)}.`)
+                                                        if (thingsToBuy[item].hasOwnProperty('customCode')) {
+                                                            if (item !== 'lottery') {
+                                                                for (let i = 0; i < quantity; i++) {
+                                                                    thingsToBuy[item].customCode(quantity)
                                                                 }
+                                                            } else {
+                                                                thingsToBuy.lottery.customCode(quantity)
                                                             }
                                                         }
                                                     }
@@ -773,18 +792,6 @@ readDB().then(results => {
                                     }
                                     break
                                 case 'changepronoun':
-                                    const bannedWordsw = ['penis', 'dick', 'sex', 'ishaan', 'ass', 'bitch', 'fuck', 'nigger']
-                                    function verifyPronoun(e) {
-                                        let apporporiate = true
-                                        for (let i = bannedWordsw.length - 1; i >= 0; i--) {
-                                            if (e.toLowerCase().includes(bannedWordsw[i].toLowerCase())) {
-                                                apporporiate = false
-                                                return false
-                                            }
-                                        }
-                                        if (e.length < 2 || e.length > 10) apporporiate = false
-                                        return apporporiate
-                                    }
                                     try {
                                         if (parsedMessage[1] == undefined) {
                                             message.channel.send('Please choose something for your pronoun.')
@@ -956,7 +963,6 @@ readDB().then(results => {
                                     }
                                     let stringToSendhate = ''
                                     if (howMuchToShow > sorted.length) howMuchToShow = sorted.length
-                                    console.log(sorted.length - howMuchToShow)
                                     for (let i = sorted.length - 1; i >= sorted.length - howMuchToShow; i--) {
                                         try {
                                             let money2 = commentNo(Math.round(sorted[i].money * 100) / 100)
