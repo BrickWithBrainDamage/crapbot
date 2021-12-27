@@ -60,7 +60,7 @@ const dbDefault = {
                 value: 1200
             }
         },
-        mostHated: {},
+        mostloved: {},
         banned: {},
         allowedChannels: []
     }
@@ -308,7 +308,7 @@ readDB().then(results => {
                                 messageAuthor.money -= amountToPay
                                 messageAuthor.netWorth -= amountToPay
 
-                                message.channel.send(`Welcome to a new day! You paid $${commentNo(amountToPay)} in taxes because the Government hates you. You now have $${commentNo(messageAuthor.money)} remaining. Your tax rate is ${Math.round(messageAuthor.taxRate * messageAuthor.taxMultiplier * 100)}%.`)
+                                message.channel.send(`Welcome to a new day! You paid $${commentNo(amountToPay)} in taxes because the Government loves you. You now have $${commentNo(messageAuthor.money)} remaining. Your tax rate is ${Math.round(messageAuthor.taxRate * messageAuthor.taxMultiplier * 100)}%.`)
                                 messageAuthor.bribed = false
                             }
                             let parsedMessage = []
@@ -567,41 +567,41 @@ readDB().then(results => {
                                     break
                                 case 'love':
                                     parsedMessage.shift()
-                                    let thingHated = parsedMessage.join(' ').toLowerCase()
-                                    if (explicitFilter(thingHated)) {
-                                        if (!db.adminData.mostHated.hasOwnProperty(thingHated)) db.adminData.mostHated[thingHated] = 0
+                                    let thingloved = parsedMessage.join(' ').toLowerCase()
+                                    if (explicitFilter(thingloved)) {
+                                        if (!db.adminData.mostloved.hasOwnProperty(thingloved)) db.adminData.mostloved[thingloved] = 0
 
-                                        if (thingHated.match(/\w/)) {
-                                            db.adminData.mostHated[thingHated]++
-                                            message.channel.send(`Loved ${thingHated}. ${thingHated} now has ${db.adminData.mostHated[thingHated]} loves`)
+                                        if (thingloved.match(/\w/)) {
+                                            db.adminData.mostloved[thingloved]++
+                                            message.channel.send(`Loved ${thingloved}. ${thingloved} now has ${db.adminData.mostloved[thingloved]} loves`)
                                         } else {
                                             message.channel.send("Cannot love an empty string!")
                                         }
                                     } else {
-                                        message.channel.send(`${thingHated} fails the explicit filter.`)
+                                        message.channel.send(`${thingloved} fails the explicit filter.`)
                                     }
                                     break
                                 case 'mostloved':
                                     let quantity = parseInt(parsedMessage[1])
                                     console.log(quantity)
                                     if (!quantity) { quantity = 5; console.log('no') }
-                                    for (let item in db.adminData.mostHated) {
+                                    for (let item in db.adminData.mostloved) {
                                         let allowPush = true
                                         if (sorted.length === 0) {
-                                            sorted.push({ 'name': item, 'hateCount': db.adminData.mostHated[item] })
+                                            sorted.push({ 'name': item, 'loveCount': db.adminData.mostloved[item] })
                                             allowPush = false
                                         }
                                         for (let i = 0; i < sorted.length; i++) {
                                             if (allowPush) {
-                                                if (i == 0 && sorted[0].hateCount >= db.adminData.mostHated[item]) {
-                                                    sorted.unshift({ 'name': item, 'hateCount': db.adminData.mostHated[item] })
+                                                if (i == 0 && sorted[0].loveCount >= db.adminData.mostloved[item]) {
+                                                    sorted.unshift({ 'name': item, 'loveCount': db.adminData.mostloved[item] })
                                                     break
-                                                } else if (i == sorted.length - 1 && sorted[sorted.length - 1].hateCount <= db.adminData.mostHated[item]) {
-                                                    sorted.push({ 'name': item, 'hateCount': db.adminData.mostHated[item] })
+                                                } else if (i == sorted.length - 1 && sorted[sorted.length - 1].loveCount <= db.adminData.mostloved[item]) {
+                                                    sorted.push({ 'name': item, 'loveCount': db.adminData.mostloved[item] })
                                                     break
                                                 } else if (i >= 1) {
-                                                    if (sorted[i - 1].hateCount <= db.adminData.mostHated[item] && sorted[i].hateCount >= db.adminData.mostHated[item]) {
-                                                        sorted.splice(i, 0, { 'name': item, 'hateCount': db.adminData.mostHated[item] });
+                                                    if (sorted[i - 1].loveCount <= db.adminData.mostloved[item] && sorted[i].loveCount >= db.adminData.mostloved[item]) {
+                                                        sorted.splice(i, 0, { 'name': item, 'loveCount': db.adminData.mostloved[item] });
                                                         break
                                                     }
                                                 }
@@ -612,7 +612,7 @@ readDB().then(results => {
                                     if (quantity > sorted.length) quantity = sorted.length
                                     for (let i = sorted.length - 1; i >= sorted.length - quantity; i--) {
                                         try {
-                                            stringToSend += `${sorted.length - i}. ${sorted[i].name} ${sorted[i].hateCount} loves\n`
+                                            stringToSend += `${sorted.length - i}. ${sorted[i].name} ${sorted[i].loveCount} loves\n`
                                         } catch (e) { }
                                     }
                                     if (stringToSend) {
@@ -951,15 +951,15 @@ Times worked: ${userInfo.timesWorked}`)
                                         }
 
                                     }
-                                    let stringToSendhate = ''
+                                    let stringToSendlove = ''
                                     if (howMuchToShow > sorted.length) howMuchToShow = sorted.length
                                     for (let i = sorted.length - 1; i >= sorted.length - howMuchToShow; i--) {
                                         try {
                                             let money2 = commentNo(Math.round(sorted[i].money * 100) / 100)
-                                            stringToSendhate += `${sorted.length - i}. ${sorted[i].username} with a net worth of $${money2}\n`
+                                            stringToSendlove += `${sorted.length - i}. ${sorted[i].username} with a net worth of $${money2}\n`
                                         } catch (e) { }
                                     }
-                                    message.channel.send(stringToSendhate)
+                                    message.channel.send(stringToSendlove)
                             }
 
                             //level up, put at the end of the thing
