@@ -10,42 +10,55 @@ const prefix = '!'
 const adminId = ['691864484079337543', '501587282395004929']
 const helpMessages = {
     'prefix': `Crapbot (c) 2021 Weiyi Jiang.
-**-I am a very crappy bot made by a 15 year old. I am very buggy. Please use me with caution-**
-❌ = In development command, may be buggy\n`,
-    'categories': '\`economy, admin, general\`',
+**-I am a very crappy bot made by a 15 year old. I am very buggy. Please use me with caution-**\n`,
+    categories: '\`economy, admin, general\`',
     'economy': `**ECONOMY**
 \`work\`: Work to earn some money (5 stamina)
 \`richest\` [optional number]: List the richest players. If a number is entered, then it will list that many players.
+
 \`buy\` [item|"list"] [optional quantity]: Buys a specified item or list all items avaliable to purchase.
 \`pay\` [mention|username] [amount]: Pays someone money
+
 \`daily\`: claim your daily reward
 \`learn\` [place|"list"]: Go somewhere to learn so you can earn XP (5 stamina).
+
 \`piracy\`: Sick of earning money the legitimate way? pirate and distribute the latest film for a lot of money (3 stamina)!
 \`arson\`: Burn down a random player's house (15 stamina).
-\`bribe\`: Bribe a politician for lower tax rates for one day (3 stamina).
-\`trader\` ['buy'|'list'] [item] ❌: The wandering trader periodically restocks his trades.
-\`inventory\` ['list'|'use'] [item]❌: Lists your inventory, or uses an item from your inventory`,
 
-    'admin': `**ADMINISTRATION**
+\`bribe\`: Bribe a politician for lower tax rates for one day (3 stamina).
+\`trader\` ['buy'|'list'] [item] : The wandering trader periodically restocks his trades.
+
+\`inventory\` ['list'|'use'] [item]: Lists your inventory, or uses an item from your inventory`,
+
+'admin': `**ADMINISTRATION**
 These commands are only avaliable to the admin whose ID exists within the index.js file
 \`clearall\`: USE WITH CAUTION, will delete EVERYONE's data
 \`save\`: saves the database
+
 \`allusers\`: Outputs everyone in the database
 \`setMoney\` [userId, money]: sets the money of a specified user to the money count
+
 \`addallowedchannel\`: add a channel to the list of channels that CrapBot is allowed to operate on
 \`removeallowedchannel\`: guess what this does
+
 \`ban\` [user]: Bans a specific user.
-\`unban\` [user]: Guess what this does`,
+\`unban\` [user]: Guess what this does
+
+\`restockTrader\`: Restocks the wandering trader with different wares`,
 
     'general': `**GENERAL**
 \`changepronoun\` [pronoun]: Change your pronoun. Pronoun must be between 2 - 8 characters and only contain letters.
 \`info\`: Displays some basic information about you.
+
 \`help\`: You've already stumbled upon this command I think you know what this does.
 \`watchMessage\` [message]: Watch when a user sends this message containing this phrase. When this happens. Ialert you with a DM. Message can include spaces
+
 \`removeWatch\`: Stop watching this message
 \`ping\`: Respondes with 'pong' and your latency.
+
 \`love\` [thing]: Do you love something and want the world to know how much you love it? Use this command!
 \`mostLoved\`: see the top 5 most loved thing by all users of CrapBot
+
 \`echo\`: crapbot will say what you say!`
 }
 let db
@@ -76,7 +89,6 @@ function cloneDB(input) {
             output[item] = input[item]
         } else {
             if (Object.keys(input[item]).length > 0) {
-                console.log(Object.keys(input[item]).length)
                 output[item] = cloneDB(input[item])
             } else {
                 output[item] = input[item]
@@ -90,9 +102,7 @@ function readDB() {
     console.log("Reading database...")
     return new Promise((resolve, reject) => {
         fs.readFile('./basicDB.txt', 'utf-8', (error, data) => {
-            if (error) {
-                console.log(error.message)
-            }
+            if (error)console.log(error.message)
             if (!data) {
                 console.log("No data detected in DB!")
                 console.log('Creating database...')
@@ -160,22 +170,38 @@ readDB().then(results => {
         {
             name: 'Potion of Instant Stamina',
             description: 'Instantly gives you 500 stamina, regardless of your stamina cap!',
-            customCode:`
-                messageAuthor.stamina.current += 500
-                message.channel.send(\`You successfully consumed a potion and now have \${messageAuthor.stamina.current} stamina.\`)
-            `,
             costDefault: 7500,
-            costVariation: 0.2
+            costVariation: 0.2,
+            quantityLowerLimit: 5,
+            quantityUpperLimit: 20,
+            emoji: '🍾'
         },
         {
             name: 'Potion of Instant Knowledge',
             description: 'Instantly gives you 50,000 EXP',
-            customCode:`
-                messageAuthor.expToNextLevel -= 50000
-                message.channel.send(\`You successfully consumed the knowledge!\`)
-            `,
             costDefault: 5000,
-            costVariation: 0.5
+            costVariation: 0.5,
+            quantityLowerLimit: 3,
+            quantityUpperLimit: 8,
+            emoji: '🥃'
+        },
+        {
+            name: 'Wildcard Ticket',
+            description: 'Nets you 1% of your net worth with each use. Has a 25% chance to break',
+            costDefault: 10000,
+            costVariation: 1,
+            emoji: '🎟',
+            quantityUpperLimit: 3,
+            quantityLowerLimit: 1,
+        },
+        {
+            name: 'Godly Dice',
+            description: '75% chance to get a million dollars, 25% chance to lose $100,000',
+            costDefault: 5,
+            costVariation: 0,
+            emoji: '🎲',
+            quantityUpperLimit: 1,
+            quantityLowerLimit: 3
         }
     ]
     let traderInStock = []
@@ -186,6 +212,7 @@ readDB().then(results => {
         return false
     }
     function restockTrader() {
+        traderInStock = []
         const traderItemCount = 2
         for (let i = 0; i < 2; i++) {
             let item
@@ -193,12 +220,67 @@ readDB().then(results => {
                 item = traderItems[Math.floor(Math.random() * traderItems.length)]
             } while (traderIncludesItem(item.name))
             traderInStock.push(cloneDB(item))
-            traderInStock[traderInStock.length - 1].cost = Math.floor(item.costDefault + Math.random() * item.costVariation * item.costDefault)
-            traderInStock[traderInStock.length - 1].quantity = Math.floor(Math.random() * 7) + 3
+            let itemInArray = traderInStock[traderInStock.length - 1]
+            itemInArray.cost = Math.floor(item.costDefault + Math.random() * item.costVariation * item.costDefault)
+            itemInArray.quantity = Math.floor(Math.random() * (itemInArray.quantityUpperLimit - itemInArray.quantityLowerLimit)) + itemInArray.quantityLowerLimit
         }
     }
     restockTrader()
     setInterval(restockTrader, 120 * 1000)
+    const traderItemFunctions = {
+        "potion of instant knowledge": {
+            customCode: function (messageAuthor, messageChannel) {
+                messageAuthor.expToNextLevel -= 50000
+                messageChannel.send(`Successfully used instant knowledge potion!`)
+            },
+            subtractItem: true,
+            condition: _ => true
+        },
+        "potion of instant stamina": {
+            customCode: function (messageAuthor, messageChannel) {
+                messageAuthor.stamina.current += 500
+                messageChannel.send(`Consumed a potion of instant stamina for ${messageAuthor.stamina.current} stamina!`)
+            },
+            subtractItem: true,
+            condition: _ => true
+        },
+        'wildcard ticket': {
+            customCode: function(messageAuthor, messageChannel) {
+                const moneyGained = messageAuthor.netWorth * 0.01
+                messageAuthor.money += moneyGained
+                messageChannel.send(`You used a wildcard for $${commentNo(Math.round(moneyGained * 100) / 100)}. You now have $${commentNo(Math.round(messageAuthor.money * 100) / 100)}`)
+                if (Math.random() < 0.25) {
+                    for (let i = 0; i < messageAuthor.inventory.length;i++) {
+                        if (messageAuthor.inventory[i].name.toLowerCase() == 'wildcard ticket') {
+                            messageAuthor.inventory[i].quantity--
+                            if (messageAuthor.inventory[i].quantity <= 0) messageAuthor.inventory.splice(i,1)
+                        }
+                    }
+                    messageChannel.send("A wildcard ticket broke!")
+                }
+            },
+            condition: _ => true,
+            subtractItem: false
+        },
+        'godly dice': {
+            condition: function (messageAuthor, messageChannel) {
+                if (messageAuthor.money > 100000) return true
+                messageChannel.send("You do not have enough money to roll the dice!")
+                return false
+            },
+            subtractItem: true,
+            customCode: function(messageAuthor, messageChannel) {
+                if (Math.random() < .5) {
+                    messageAuthor.money += 1000000
+                    messageChannel.send(`You won big! One million dollars has been added to your account! You now have ${commentNo(Math.round(messageAuthor.money * 100) / 100)}`)
+                } else {
+                    messageAuthor.money -= 100000
+                    messageChannel.send(`God, RNG, and Math.random() does not like you. You lost $100,000. You now have ${commentNo(Math.round(messageAuthor.money * 100) / 100)}`)
+                }
+            }
+        }
+    }
+
     function explicitFilter(e) { //returns false if a word is inapporiate
         return !/penis|vagina|fuck|bitch|ass|shit|regextest|nigg(a|er)/.test(e)
     }
@@ -207,8 +289,12 @@ readDB().then(results => {
     function listItemsFromArray(e) {
         let message = ''
         for (let i = 0; i < e.length; i++) {
-            message += `**${e[i].name}** ($${e[i].cost})
-${e[i].description}
+            if (e[i].cost) {
+                message += `**${e[i].emoji} ${e[i].name}** ($${e[i].cost})\n`
+            } else {
+                message += `**${e[i].emoji} ${e[i].name}**\n`
+            }
+            message += `*${e[i].description}*
 ${e[i].quantity} remaining\n`
         }
         if (!message) message = "Empty!"
@@ -418,6 +504,9 @@ ${drawStaminaBar()}`)
                             if (adminId.includes(message.author.id)) {
                                 //admin debug commands
                                 switch (parsedMessage[0].toLowerCase()) {
+                                    case 'restocktrader':
+                                        restockTrader()
+                                        break
                                     case 'setmoney':
                                         let userId = parsedMessage[1].match(/\d+/)[0]
                                         let moneyToSet = parseInt(parsedMessage[2].match(/[0-9]+/)[0])
@@ -665,8 +754,7 @@ Please ensure that you're using a mention to unban a user.`)
                                     break
                                 case 'mostloved':
                                     let quantity = parseInt(parsedMessage[1])
-                                    console.log(quantity)
-                                    if (!quantity) { quantity = 5; console.log('no') }
+                                    if (!quantity) quantity = 5
                                     for (let item in db.adminData.mostloved) {
                                         let allowPush = true
                                         if (sorted.length === 0) {
@@ -879,13 +967,16 @@ Please ensure that you're using a mention to unban a user.`)
                                             break
                                         case 'use':
                                             let itemFound = false
-                                            for (let i = 0; i < messageAuthor.inventory.length;i++) {
-                                                if (messageAuthor.inventory[i].name.toLowerCase() == parsedMessage[2].toLowerCase()) {
+                                            for (let i = 0; i < messageAuthor.inventory.length; i++) {
+                                                const item = parsedMessage[2].toLowerCase()
+                                                if (messageAuthor.inventory[i].name.toLowerCase() == item) {
                                                     itemFound = true
-                                                    messageAuthor.inventory[i].quantity--
-                                                    eval(messageAuthor.inventory[i].customCode)
-                                                    if (messageAuthor.inventory[i].quantity <= 0) {
-                                                        messageAuthor.inventory.splice(i,1)
+                                                    if (traderItemFunctions[item].condition(messageAuthor, message.channel)) {
+                                                        if (traderItemFunctions[item].subtractItem) messageAuthor.inventory[i].quantity--
+                                                        traderItemFunctions[item].customCode(messageAuthor, message.channel)
+                                                        if (messageAuthor.inventory[i].quantity <= 0) {
+                                                            messageAuthor.inventory.splice(i, 1)
+                                                        }
                                                     }
                                                 }
                                             }
@@ -910,6 +1001,7 @@ Please ensure that you're using a mention to unban a user.`)
                                                     if (traderInStock[i].cost * quantity > messageAuthor.money) {
                                                         message.channel.send("Cannot afford!")
                                                     } else {
+                                                        messageAuthor.money -= traderInStock[i].cost * quantity
                                                         let inventoryIncludesItem = false
                                                         for (let ii = 0; ii < messageAuthor.inventory.length; i++) {
                                                             if (messageAuthor.inventory[ii].name == traderInStock[i].name) {
@@ -919,14 +1011,17 @@ Please ensure that you're using a mention to unban a user.`)
                                                             break
                                                         }
                                                         if (!inventoryIncludesItem) {
-                                                            messageAuthor.inventory.push(cloneDB(traderInStock[i]))
-                                                            messageAuthor.inventory[messageAuthor.inventory.length - 1].quantity = quantity
+                                                            messageAuthor.inventory.push({
+                                                                name: traderInStock[i].name,
+                                                                quantity: quantity,
+                                                                description: traderInStock[i].description,
+                                                                emoji: traderInStock[i].emoji
+                                                            })
                                                         }
                                                         message.channel.send(`Success! Brought ${quantity} **${traderInStock[i].name}(s)**`)
+                                                        traderInStock[i].quantity -= quantity
+                                                        if (traderInStock[i].quantity === 0) traderInStock.splice(i, 1)
                                                     }
-
-                                                    traderInStock[i].quantity -= quantity
-                                                    if (traderInStock[i].quantity === 0) traderInStock.splice(i, 1)
                                                     break
                                                 }
                                             }
@@ -986,7 +1081,6 @@ Please ensure that you're using a mention to unban a user.`)
                                     break
                                 case 'work':
                                     //functionality for working
-                                    console.log(messageAuthor, messageAuthor.stamina)
                                     if (checkStamina(5)) {
                                         let moneyEarned = Math.round(Math.random() * 10 * messageAuthor.level + 3 / 10 + messageAuthor.level ** 2 / 3)
                                         let xpEarned = moneyEarned * 3 * Math.random()
@@ -1153,7 +1247,7 @@ Times worked: ${userInfo.timesWorked}`)
                         quicktimeTypeInProgress = false
                         let gainMoney = Math.round(Math.random() * 500) + 500 + messageAuthor.money * 0.01
                         messageAuthor.money += gainMoney
-                        message.channel.send(`Congratulations to ${message.author.username}, who typed the phrase first! ${messageAuthor.pronoun} recieved $${gainMoney}`)
+                        message.channel.send(`Congratulations to ${message.author.username}, who typed the phrase first! ${messageAuthor.pronoun} recieved $${commentNo(Math.round(gainMoney * 100) / 100)}`)
                     }
                 }
             }
