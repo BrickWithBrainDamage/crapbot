@@ -1,6 +1,5 @@
 //get ready for code worse than yandere simulator
 "use strict"
-const { match } = require('assert');
 const { Client, Intents } = require('discord.js');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_PRESENCES] });
 const fs = require('fs');
@@ -9,7 +8,6 @@ const fs = require('fs');
 const token = process.argv[2]
 const prefix = '!'
 const adminId = ['691864484079337543', '501587282395004929']
-
 const helpMessages = {
     'prefix': `Crapbot (c) 2021 Weiyi Jiang.
 **-I am a very crappy bot made by a 15 year old. I am very buggy. Please use me with caution-**
@@ -51,11 +49,19 @@ const dbDefault = {
     messagesWatched: {},
     adminData: {
         devMode: false,
-        laptopsOwned: {},
-        housesOwned: {},
+        stuffOwned: {
+            computer: {
+                value: 1
+            },
+            house: {
+                value: 10
+            },
+            mansion: {
+                value: 1200
+            }
+        },
         mostHated: {},
         banned: {},
-        mansionOwned: {},
         allowedChannels: []
     }
 }
@@ -128,17 +134,12 @@ readDB().then(results => {
         db.adminData.allowedChannels = []
     }
     setInterval(() => {
-        for (let item in db.adminData.laptopsOwned) {
-            db[item].money += db.adminData.laptopsOwned[item]
-            db[item].netWorth += db.adminData.laptopsOwned[item]
-        }
-        for (let item in db.adminData.housesOwned) {
-            db[item].money += db.adminData.housesOwned[item] * 10
-            db[item].netWorth += db.adminData.housesOwned[item] * 10
-        }
-        for (let item in db.adminData.mansionOwned) {
-            db[item].money += db.adminData.mansionOwned[item] * 1200
-            db[item].netWorth += db.adminData.mansionOwned[item] * 1200
+        for (const item in db.adminData.stuffOwned) {
+            for (const user in db.adminData.stuffOwned[item]) {
+                if (user !== 'value') {
+                    db[user].money += db.adminData.stuffOwned[item][user] * db.adminData.stuffOwned[item].value
+                }
+            }
         }
     }, 1000)
     function commentNo(a) {
@@ -317,18 +318,21 @@ readDB().then(results => {
                             while (unparsedMessage.length > 0) {
                                 let nextSpliceIndex
                                 let str
-                                //special characters ' and "
+                                //special characters ' " and `
                                 //these characters will be what is used to separate arguments in a command
                                 //these work exactly just as you would expect
                                 //eg: !buy "test1 test2" 10 goes into 'buy', 'test1 test2', and '10'
                                 const specialChars = ['"', '\'', '`']
                                 specialChars.includes(unparsedMessage[0]) ? str = unparsedMessage[0] : str = ' '
                                 for (let i = 1; i < unparsedMessage.length; i++) {
-                                    if (unparsedMessage[i] == str || i == unparsedMessage.length - 1) {
+                                    if (unparsedMessage[i] == str) {
                                         nextSpliceIndex = i
                                         break
                                     }
                                 }
+                                //if we are unable to detect a space or quotation mark, then we must be at the end of the message
+                                //so use the length of the message for splice()
+                                if (!nextSpliceIndex) nextSpliceIndex = unparsedMessage.length - 1 
                                 parsedMessage.push(unparsedMessage.splice(0, nextSpliceIndex + 1).join('').replaceAll(/'|"|^\s|\s$/g, ''))
                             }
                             function listAllChannels() {
@@ -339,6 +343,16 @@ readDB().then(results => {
                             if (adminId.includes(message.author.id)) {
                                 //admin debug commands
                                 switch (parsedMessage[0].toLowerCase()) {
+                                    case 'setmoney':
+                                        if (db.hasOwnProperty(parsedMessage[1])) {
+                                            let netWorthGain = parseInt(parsedMessage[2].match(/[0-9]+/)[0]) - db[parsedMessage[1]].money
+                                            db[parsedMessage[1]].money = parseInt(parsedMessage[2])
+                                            db[parsedMessage[1]].netWorth += netWorthGain
+                                            message.channel.send(`User ${parsedMessage[1]} now has $${commentNo(Math.round(db[parsedMessage[1]].money * 100) / 100)} (total net worth ${db[parsedMessage[1]].netWorth})`)
+                                        } else {
+                                            message.channel.send(`${parsedMessage[1]} not found!`)
+                                        }
+                                        break
                                     case 'setpronoun':
                                         if (!parsedMessage[1] || !parsedMessage[2]) {
                                             message.channel.send("Please use the command in the following format:\n !setpronoun [user] [pronoun]. [user] should be a mention.")
@@ -433,6 +447,10 @@ readDB().then(results => {
                                             }
                                         }
                                 }
+                            } else {
+                                const adminCommands = ['allusers', 'shutdown', 'save', 'toggledevmode', 'unban', 'ban', 'removeallowedchannel', 'addallowedchannel',
+                                    'setpronoun', 'setmoney']
+                                if (adminCommands.includes(parsedMessage[0].toLowerCase())) message.channel.send("Hey, you're not an admin! What are you doing?")
                             }
                             switch (parsedMessage[0].toLowerCase()) {
                                 case 'watchmessage':
@@ -547,20 +565,6 @@ readDB().then(results => {
                                         message.channel.send("You need to select a user to pay!")
                                     }
                                     break
-                                case 'setmoney':
-                                    if (adminId.includes(message.author.id)) {
-                                        if (db.hasOwnProperty(parsedMessage[1])) {
-                                            let netWorthGain = parseInt(parsedMessage[2].match(/[0-9]+/)[0]) - db[parsedMessage[1]].money
-                                            db[parsedMessage[1]].money = parseInt(parsedMessage[2])
-                                            db[parsedMessage[1]].netWorth += netWorthGain
-                                            message.channel.send(`User ${parsedMessage[1]} now has $${commentNo(Math.round(db[parsedMessage[1]].money * 100) / 100)} (total net worth ${db[parsedMessage[1]].netWorth})`)
-                                        } else {
-                                            message.channel.send(`${parsedMessage[1]} not found!`)
-                                        }
-                                    } else {
-                                        message.channel.send("Access Denied")
-                                    }
-                                    break
                                 case 'love':
                                     parsedMessage.shift()
                                     let thingHated = parsedMessage.join(' ').toLowerCase()
@@ -652,12 +656,6 @@ readDB().then(results => {
                                             'description': ':computer:**computer ($15000)**: give you ONE dollar a second. Can be purchased multiple times',
                                             condition: function () {
                                                 return true
-                                            },
-                                            customCode: function () {
-                                                if (!db.adminData.laptopsOwned.hasOwnProperty(message.author.id)) {
-                                                    db.adminData.laptopsOwned[message.author.id] = 0
-                                                }
-                                                db.adminData.laptopsOwned[message.author.id]++
                                             }
                                         },
                                         'lottery': {
@@ -708,12 +706,6 @@ readDB().then(results => {
                                                 return true
                                             },
                                             'description': '**🏠House($100,000)**: an expensive investment, but nets you $10 per second!',
-                                            customCode: function () {
-                                                if (!db.adminData.housesOwned.hasOwnProperty(message.author.id)) {
-                                                    db.adminData.housesOwned[message.author.id] = 0
-                                                }
-                                                db.adminData.housesOwned[message.author.id]++
-                                            }
                                         },
                                         'mansion': {
                                             price: 10000000,
@@ -725,15 +717,9 @@ readDB().then(results => {
                                                 }
                                             },
                                             'description': '**🏛Mansion($10,000,000)**: even more expensive than houses, giving you $1200 per second!',
-                                            customCode: function () {
-                                                if (!db.adminData.mansionOwned.hasOwnProperty(message.author.id)) {
-                                                    db.adminData.mansionOwned[message.author.id] = 0
-                                                }
-                                                db.adminData.mansionOwned[message.author.id]++
-                                            }
                                         }
                                     }
-                                    if (parsedMessage[1]) {
+                                     if (parsedMessage[1]) {
                                         let quantity = parsedMessage[2]
                                         if (quantity === undefined) {
                                             quantity = 1
@@ -758,22 +744,10 @@ readDB().then(results => {
                                                         messageAuthor.money -= parseInt(thingsToBuy[item].price * quantity)
                                                         message.channel.send(`Success! You brought ${quantity} ${item}(s). You now have $${commentNo(Math.round(messageAuthor.money * 100) / 100)}.`)
                                                         if (thingsToBuy[item].hasOwnProperty('customCode')) {
-                                                            if (item !== 'lottery') {
-                                                                let variablesToIncrement = {
-                                                                    'computer': 'laptopsOwned',
-                                                                    'mansion': 'mansionOwned',
-                                                                    'house': 'housesOwned',
-                                                                }
-                                                                if (variablesToIncrement.hasOwnProperty(item)) {
-                                                                    db.adminData[variablesToIncrement[item]] += quantity
-                                                                } else {
-                                                                    for (let i = 0; i < quantity; i++) {
-                                                                        thingsToBuy[item].customCode(quantity)
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                thingsToBuy.lottery.customCode(quantity)
-                                                            }
+                                                            thingsToBuy[item].customCode(quantity)
+                                                        } else {
+                                                            if (!db.adminData.stuffOwned[item].hasOwnProperty(message.author.id)) db.adminData.stuffOwned[item][message.author.id] = 0
+                                                            db.adminData.stuffOwned[item][message.author.id] += quantity
                                                         }
                                                     }
                                                 } else {
@@ -802,19 +776,7 @@ readDB().then(results => {
                                     }
                                     message.channel.send(messageToSendHelp)
                                     break
-                                case 'generatexpsettings':
-                                    if (adminId.includes(message.author.id)) {
-                                        let times = parseInt(parsedMessage[1])
-                                        for (let i = 0; i < times; i++) {
-                                            experiences[i] = Math.ceil((i ** 2) / 3 + 15)
-                                        }
-                                        fs.writeFile('./xpprefix.txt', JSON.stringify(experiences), (error) => {
-                                            if (error) console.log(error)
-                                        })
-                                    }
-                                    break
                                 case 'changepronoun':
-                                    try {
                                         if (parsedMessage[1] == undefined) {
                                             message.channel.send('Please choose something for your pronoun.')
                                         } else {
@@ -825,7 +787,6 @@ readDB().then(results => {
                                                 message.channel.send(`Pronoun must be between 2 and 10 characters and not contain any inapporporiate words (pronoun must match regex \`${new String(pronounRegex)}\`).`)
                                             }
                                         }
-                                    } catch (e) { message.channel.send(`Error while changing pronoun! (${e.message})`) }
                                     break
                                 case 'learn':
                                     const places = {
@@ -906,25 +867,32 @@ readDB().then(results => {
                                     break
                                 case 'info':
                                     //if there is a mention, then use that find the user for taht mention. Else, use the user who sent the message
-                                    let laptopsOwned
-                                    let housesOwned
-                                    let mansionOwned
-                                    if (message.mentions.users.first()) {
-                                        messageAuthor = db[message.mentions.users.first().id]
-                                        laptopsOwned = db.adminData.laptopsOwned[message.mentions.users.first().id]
-                                        housesOwned = db.adminData.housesOwned[message.mentions.users.first().id]
-                                        mansionOwned = db.adminData.mansionOwned[message.mentions.users.first().id]
-                                    } else {
-                                        messageAuthor = db[message.author.id]
-                                        laptopsOwned = db.adminData.laptopsOwned[message.author.id]
-                                        housesOwned = db.adminData.housesOwned[message.author.id]
-                                        mansionOwned = db.adminData.mansionOwned[message.author.id]
+
+                                    let userId
+                                    message.mentions.users.first() ? userId = message.mentions.users.first().id : userId = message.author.id
+                                    let userInfo = {
+                                        /* messageCount: db[userId].messageCount,
+                                        timesWorked: db[userId].timesWorked,
+                                        username: db[userId].username,
+                                        level: db[userId].level,
+                                        expToNextLevel: db[userId].expToNextLevel */
                                     }
-                                    if (laptopsOwned == undefined) laptopsOwned = 0
-                                    if (housesOwned == undefined) housesOwned = 0
-                                    if (mansionOwned == undefined) mansionOwned = 0
+                                    const stats = ['messageCount', 'timesWorked', 'username', 'level', 'expToNextLevel', 'money']
+                                    stats.forEach(e => userInfo[e] = db[userId][e])
+                                    for (const item in db.adminData.stuffOwned) {
+                                        db.adminData.stuffOwned[item][userId] ? userInfo[`${item}Owned`] = db.adminData.stuffOwned[item][userId] : userInfo[`${item}Owned`] = 0
+                                    }
                                     try {
-                                        message.channel.send(`**===Information for ${messageAuthor.username}===**\nLevel: ${messageAuthor.level} (${Math.round(messageAuthor.expToNextLevel * 100) / 100} XP until level up)\nMoney: $${commentNo(Math.round(messageAuthor.money * 100) / 100)}\nComputer(s) owned: ${laptopsOwned}\nHouses owned: ${housesOwned}\nMansions owned: ${mansionOwned}\n**===Statistics===**\nMessages sent: ${messageAuthor.messageCount}\nTimes worked: ${messageAuthor.timesWorked}`)
+                                        message.channel.send(
+`**===Information for ${userInfo.username}===**
+Level: ${userInfo.level} (${Math.round(userInfo.expToNextLevel * 100) / 100} XP until level up)
+Money: $${commentNo(Math.round(userInfo.money * 100) / 100)}
+Computer(s) owned: ${userInfo.computerOwned}
+House(s) owned: ${userInfo.houseOwned}
+Mansion(s) owned: ${userInfo.mansionOwned}
+**===Statistics===**
+Messages sent: ${userInfo.messageCount}
+Times worked: ${userInfo.timesWorked}`)
                                     } catch (e) {
                                         message.channel.send(`Error retrieving user info! This is probably because the user has never used this bot. ${e.message}`)
                                     }
