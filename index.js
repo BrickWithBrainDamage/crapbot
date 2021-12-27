@@ -445,15 +445,14 @@ ${e[i].quantity} remaining\n`
                             }
                             return output
                         }
-                        const sendStaminaStats = required => message.channel.send(`You do not have enough stamina! You have ${messageAuthor.stamina.currrent} when ${required} is needed
-${drawStaminaBar()}`)
                         function checkStamina(amount) {
                             //check if the stamina is enough, and if it is, subtract that stamina from the player's
-                            if (messageAuthor.stamina.current - amount * messageAuthor.stamina.useMultiplier) {
+                            if (messageAuthor.stamina.current - amount * messageAuthor.stamina.useMultiplier > 0) {
                                 messageAuthor.stamina.current -= amount * messageAuthor.stamina.useMultiplier
                                 return true
                             }
-                            sendStaminaStats(5)
+                            message.channel.send(`You do not have enough stamina! You have ${messageAuthor.stamina.current} when ${amount} is needed
+${drawStaminaBar()}`)
                             return false
                         }
                         if (!userBanned) {
