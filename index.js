@@ -11,28 +11,32 @@ const adminId = ['691864484079337543', '501587282395004929']
 const helpMessages = {
     'prefix': `Crapbot (c) 2021 Weiyi Jiang.
 **-I am a very crappy bot made by a 15 year old. I am very buggy. Please use me with caution-**
-❌ = In deveopment command, may be buggy\n`,
+❌ = In development command, may be buggy\n`,
     'categories': '\`economy, admin, general\`',
     'economy': `**ECONOMY**
-\`work\`: Work to earn some money
+\`work\`: Work to earn some money (5 stamina)
 \`richest\` [optional number]: List the richest players. If a number is entered, then it will list that many players.
 \`buy\` [item|"list"] [optional quantity]: Buys a specified item or list all items avaliable to purchase.
 \`pay\` [mention|username] [amount]: Pays someone money
 \`daily\`: claim your daily reward
-\`learn\` [place|"list"]: Go somewhere to learn so you can earn XP.
-\`piracy\`: Sick of earning money the legitimate way? pirate and distribute the latest film for a lot of money!
-\`arson\`: Burn down a random player's house.
-\`bribe\`: Bribe a politician for lower tax rates for one day.`,
+\`learn\` [place|"list"]: Go somewhere to learn so you can earn XP (5 stamina).
+\`piracy\`: Sick of earning money the legitimate way? pirate and distribute the latest film for a lot of money (3 stamina)!
+\`arson\`: Burn down a random player's house (15 stamina).
+\`bribe\`: Bribe a politician for lower tax rates for one day (3 stamina).
+\`trader\` ['buy'|'list'] [item] ❌: The wandering trader periodically restocks his trades.
+\`inventory\` ['list'|'use'] [item]❌: Lists your inventory, or uses an item from your inventory`,
+
     'admin': `**ADMINISTRATION**
 These commands are only avaliable to the admin whose ID exists within the index.js file
 \`clearall\`: USE WITH CAUTION, will delete EVERYONE's data
 \`save\`: saves the database
 \`allusers\`: Outputs everyone in the database
 \`setMoney\` [userId, money]: sets the money of a specified user to the money count
-\`toggleDevMode\`: ❌toggles the bot status between showing a messing stating that it is avaliable and showing that it is unavaliable
 \`addallowedchannel\`: add a channel to the list of channels that CrapBot is allowed to operate on
 \`removeallowedchannel\`: guess what this does
-\`ban\` [user]: Bans a specific user. `,
+\`ban\` [user]: Bans a specific user.
+\`unban\` [user]: Guess what this does`,
+
     'general': `**GENERAL**
 \`changepronoun\` [pronoun]: Change your pronoun. Pronoun must be between 2 - 8 characters and only contain letters.
 \`info\`: Displays some basic information about you.
@@ -152,11 +156,64 @@ readDB().then(results => {
         output.pop()
         return output.join('').concat(tempSliced.join(''))
     }
+    const traderItems = [
+        {
+            name: 'Potion of Instant Stamina',
+            description: 'Instantly gives you 500 stamina, regardless of your stamina cap!',
+            customCode:`
+                messageAuthor.stamina.current += 500
+                message.channel.send(\`You successfully consumed a potion and now have \${messageAuthor.stamina.current} stamina.\`)
+            `,
+            costDefault: 7500,
+            costVariation: 0.2
+        },
+        {
+            name: 'Potion of Instant Knowledge',
+            description: 'Instantly gives you 50,000 EXP',
+            customCode:`
+                messageAuthor.expToNextLevel -= 50000
+                message.channel.send(\`You successfully consumed the knowledge!\`)
+            `,
+            costDefault: 5000,
+            costVariation: 0.5
+        }
+    ]
+    let traderInStock = []
+    function traderIncludesItem(name) {
+        for (let i = 0; i < traderInStock.length; i++) {
+            if (traderInStock[i].name == name) return true
+        }
+        return false
+    }
+    function restockTrader() {
+        const traderItemCount = 2
+        for (let i = 0; i < 2; i++) {
+            let item
+            do {
+                item = traderItems[Math.floor(Math.random() * traderItems.length)]
+            } while (traderIncludesItem(item.name))
+            traderInStock.push(cloneDB(item))
+            traderInStock[traderInStock.length - 1].cost = Math.floor(item.costDefault + Math.random() * item.costVariation)
+            traderInStock[traderInStock.length - 1].quantity = Math.floor(Math.random() * 7) + 3
+        }
+    }
+    restockTrader()
+    setInterval(restockTrader, 120 * 1000)
     function explicitFilter(e) { //returns false if a word is inapporiate
         return !/penis|vagina|fuck|bitch|ass|shit|regextest|nigg(a|er)/.test(e)
     }
     const pronounRegex = /^(?!.*(penis|vagina|fuck|bitch|ass|shit|regextest|nigg(a|er)))(?=[a-z]{2,10})(?![a-z]{11,})(?!\s)/i
     const verifyPronoun = e => pronounRegex.test(e)
+    function listItemsFromArray(e) {
+        let message = ''
+        for (let i = 0; i < e.length; i++) {
+            message += `**${e[i].name}** ($${e[i].cost})
+${e[i].description}
+${e[i].quantity} remaining\n`
+        }
+        if (!message) message = "Empty!"
+        return message
+    }
     let quicktimeTypeInProgress = false
     let quicktimeTypePhrase
     let quicktimeTimeout
@@ -217,7 +274,7 @@ readDB().then(results => {
                                 if (message.content.toLowerCase().includes(e.toLowerCase()) && !message.content.includes('removeWatch')) {
                                     client.users.cache.get(thing).send(`User **${message.author.username}** has sent the phrase **${e}** in the message **${message.content}** on **${timeConverter(message.createdTimestamp / 1000)}**`)
                                 }
-                            } catch {}
+                            } catch { }
                         })
                     }
                     //if we DONT have information for a user, then create an object for that user
@@ -239,7 +296,14 @@ readDB().then(results => {
                             'taxRate': 0.15,
                             'taxMultiplier': 1,
                             'lastArson': 0,
-                            'bribed': false
+                            'bribed': false,
+                            'stamina': {
+                                'current': 100,
+                                'max': 100,
+                                'gainMultiplier': 1,
+                                'useMultiplier': 1
+                            },
+                            'inventory': []
                         }
                     }
                     //backwards compadibility by adding in keys not from previous versions
@@ -255,7 +319,7 @@ readDB().then(results => {
                             message.channel.send(`Chaged ${message.author.username}'s pronoun to ${messageAuthor.pronoun}`)
                         } else {
                             message.channel.send(
-`${message.content} is not a valid pronoun. Pronouns must be between 2 and 10 characters and not contain any inapporporiate words (pronoun must match regex \`${new String(pronounRegex)}\`).`)
+                                `${message.content} is not a valid pronoun. Pronouns must be between 2 and 10 characters and not contain any inapporporiate words (pronoun must match regex \`${new String(pronounRegex)}\`).`)
                         }
                     }
 
@@ -267,6 +331,33 @@ readDB().then(results => {
                     let sorted = []
 
                     if (message.content.startsWith(prefix)) {
+                        function drawStaminaBar() {
+                            const barSize = 20
+                            const eachBarWorth = messageAuthor.stamina.max / barSize
+                            const barsFilled = messageAuthor.stamina.current / eachBarWorth
+                            let output = ''
+                            for (let i = 0; i < barSize; i++) {
+                                if (i < Math.floor(barsFilled)) {
+                                    output += '█'
+                                } else if (i - barsFilled < 0) {
+                                    output += '▓'
+                                } else {
+                                    output += '░'
+                                }
+                            }
+                            return output
+                        }
+                        const sendStaminaStats = required => message.channel.send(`You do not have enough stamina! You have ${messageAuthor.stamina.currrent} when ${required} is needed
+${drawStaminaBar()}`)
+                        function checkStamina(amount) {
+                            //check if the stamina is enough, and if it is, subtract that stamina from the player's
+                            if (messageAuthor.stamina.current - amount * messageAuthor.stamina.useMultiplier) {
+                                messageAuthor.stamina.current -= amount * messageAuthor.stamina.useMultiplier
+                                return true
+                            }
+                            sendStaminaStats(5)
+                            return false
+                        }
                         if (!userBanned) {
                             //paying tax
                             let date = new Date()
@@ -316,7 +407,7 @@ readDB().then(results => {
                                 }
                                 //if we are unable to detect a space or quotation mark, then we must be at the end of the message
                                 //so use the length of the message for splice()
-                                if (!nextSpliceIndex) nextSpliceIndex = unparsedMessage.length - 1 
+                                if (!nextSpliceIndex) nextSpliceIndex = unparsedMessage.length - 1
                                 parsedMessage.push(unparsedMessage.splice(0, nextSpliceIndex + 1).join('').replaceAll(/'|"|^\s|\s$/g, ''))
                             }
                             function listAllChannels() {
@@ -479,25 +570,26 @@ Please ensure that you're using a mention to unban a user.`)
                                     if (parsedMessage.length > 0) message.channel.send(parsedMessage.join(' ').replaceAll(prefix, ''))
                                     break
                                 case 'arson':
-                                    let arsonDate = new Date()
-                                    let now = arsonDate.getTime()
-                                    if (now - parseInt(messageAuthor.lastArson) > 240000) {
-                                        let allPlayers = Object.keys(db.adminData.housesOwned)
-                                        allPlayers.splice(allPlayers.indexOf(message.author.id), 1)
-                                        message.channel.send(JSON.stringify(allPlayers))
-                                        allPlayers = allPlayers.filter(e => db.adminData.housesOwned[e] >= 100)
-                                        if (allPlayers.length >= 1) {
-                                            messageAuthor.lastArson = now
-                                            let player = allPlayers[Math.floor(Math.random() * allPlayers.length)]
-                                            db.adminData.housesOwned[player]--
-                                            message.channel.send(`You burned down ${db[player].username}'s house. ${db[player].username} now has ${db.adminData.housesOwned[player]} houses.`)
+                                    if (checkStamina(15)) {
+                                        let arsonDate = new Date()
+                                        let now = arsonDate.getTime()
+                                        if (now - parseInt(messageAuthor.lastArson) > 240000) {
+                                            let allPlayers = Object.keys(db.adminData.housesOwned)
+                                            allPlayers.splice(allPlayers.indexOf(message.author.id), 1)
+                                            message.channel.send(JSON.stringify(allPlayers))
+                                            allPlayers = allPlayers.filter(e => db.adminData.housesOwned[e] >= 100)
+                                            if (allPlayers.length >= 1) {
+                                                messageAuthor.lastArson = now
+                                                let player = allPlayers[Math.floor(Math.random() * allPlayers.length)]
+                                                db.adminData.housesOwned[player]--
+                                                message.channel.send(`You burned down ${db[player].username}'s house. ${db[player].username} now has ${db.adminData.housesOwned[player]} houses.`)
+                                            } else {
+                                                message.channel.send("You have noone to arson apart from yourself.")
+                                            }
                                         } else {
-                                            message.channel.send("You have noone to arson apart from yourself.")
+                                            message.channel.send("Please wait a while longer before arsoning or you'll get caught by the police!")
                                         }
-                                    } else {
-                                        message.channel.send("Please wait a while longer before arsoning or you'll get caught by the police!")
                                     }
-
                                     break
                                 case 'math':
                                     if (messageAuthor.money < 500) {
@@ -623,20 +715,22 @@ Please ensure that you're using a mention to unban a user.`)
                                     }
                                     break
                                 case 'piracy':
-                                    if (db.adminData.laptopsOwned[message.author.id] > 0) {
-                                        let date = new Date()
-                                        let currentHour = `${date.getHours()} ${date.getDate()}`
-                                        if (currentHour != messageAuthor.lastPiracy) {
-                                            let moneyGained = Math.floor(Math.random() * 2500) + 5000
-                                            messageAuthor.lastPiracy = currentHour
-                                            messageAuthor.money += moneyGained
-                                            messageAuthor.netWorth += moneyGained
-                                            message.channel.send(`🏴‍☠️You pirated and distributed the newest film, and gained $${moneyGained}.`)
-                                        } else {
-                                            message.channel.send("There are no more movies for you to pirate and distribute!")
+                                    if (db.adminData.stuffOwned.computer[message.author.id] > 0) {
+                                        if (checkStamina(3)) {
+                                            let date = new Date()
+                                            let currentHour = `${date.getHours()} ${date.getDate()}`
+                                            if (currentHour != messageAuthor.lastPiracy) {
+                                                let moneyGained = Math.floor(Math.random() * 2500) + 5000 + messageAuthor.netWorth * 0.01
+                                                messageAuthor.lastPiracy = currentHour
+                                                messageAuthor.money += moneyGained
+                                                messageAuthor.netWorth += moneyGained
+                                                message.channel.send(`🏴‍☠️You pirated and distributed the newest film, and gained $${moneyGained}.`)
+                                            } else {
+                                                message.channel.send("There are no more movies for you to pirate and distribute!")
+                                            }
                                         }
                                     } else {
-                                        message.channel.send("You need at least one computer to engage in this command!")
+                                        message.channel.send("You need at least one computer to engage in internet piracy!")
                                     }
                                     break
                                 case 'buy':
@@ -700,7 +794,7 @@ Please ensure that you're using a mention to unban a user.`)
                                         'mansion': {
                                             price: 10000000,
                                             condition: function () {
-                                                if (db.adminData.housesOwned[message.author.id] >= 10) {
+                                                if (db.adminData.stuffOwned.house[message.author.id] >= 10) {
                                                     return true
                                                 } else {
                                                     message.channel.send("The real estate agency said that you have to prove your worth before buying a mansion. Please purchase at least 10 houses")
@@ -709,7 +803,7 @@ Please ensure that you're using a mention to unban a user.`)
                                             'description': '**🏛Mansion($10,000,000)**: even more expensive than houses, giving you $1200 per second!',
                                         }
                                     }
-                                     if (parsedMessage[1]) {
+                                    if (parsedMessage[1]) {
                                         let quantity = parsedMessage[2]
                                         if (quantity === undefined) {
                                             quantity = 1
@@ -767,87 +861,157 @@ Please ensure that you're using a mention to unban a user.`)
                                     message.channel.send(messageToSendHelp)
                                     break
                                 case 'changepronoun':
-                                        if (parsedMessage[1] == undefined) {
-                                            message.channel.send('Please choose something for your pronoun.')
+                                    if (parsedMessage[1] == undefined) {
+                                        message.channel.send('Please choose something for your pronoun.')
+                                    } else {
+                                        if (verifyPronoun(parsedMessage[1])) {
+                                            messageAuthor.pronoun = parsedMessage[1]
+                                            message.channel.send(`Changed pronoun for **${message.author.username}** to ${messageAuthor.pronoun}`)
                                         } else {
-                                            if (verifyPronoun(parsedMessage[1])) {
-                                                messageAuthor.pronoun = parsedMessage[1]
-                                                message.channel.send(`Changed pronoun for **${message.author.username}** to ${messageAuthor.pronoun}`)
-                                            } else {
-                                                message.channel.send(`Pronoun must be between 2 and 10 characters and not contain any inapporporiate words (pronoun must match regex \`${new String(pronounRegex)}\`).`)
-                                            }
-                                        }
-                                    break
-                                case 'learn':
-                                    const places = {
-                                        'Communitycollege': {
-                                            'emoji': '🏫',
-                                            'cost': 0,
-                                            'xp': 100,
-                                        },
-                                        'College': {
-                                            'emoji': '🎓',
-                                            'cost': 100,
-                                            'xp': 500
-                                        },
-                                        'University': {
-                                            'emoji': '🏢',
-                                            'cost': 1000,
-                                            'xp': 7500
+                                            message.channel.send(`Pronoun must be between 2 and 10 characters and not contain any inapporporiate words (pronoun must match regex \`${new String(pronounRegex)}\`).`)
                                         }
                                     }
-                                    if (!parsedMessage[1]) {
-                                        message.channel.send("Please specify a place to learn!")
-                                    } else {
-                                        let placeFound = false
-                                        for (let item in places) {
-                                            if (parsedMessage[1] == 'list') {
-                                                let outputMessage = ''
-                                                for (let item2 in places) {
-                                                    outputMessage += `${places[item2].emoji}\`${item2}\`: costing $${places[item2].cost} and giving you ${places[item2].xp} XP.\n`
+                                    break
+                                case 'inventory':
+                                    switch (parsedMessage[1]) {
+                                        case 'list':
+                                            message.channel.send(listItemsFromArray(messageAuthor.inventory))
+                                            break
+                                        case 'use':
+                                            let itemFound = false
+                                            for (let i = 0; i < messageAuthor.inventory.length;i++) {
+                                                if (messageAuthor.inventory[i].name.toLowerCase() == parsedMessage[2].toLowerCase()) {
+                                                    itemFound = true
+                                                    messageAuthor.inventory[i].quantity--
+                                                    eval(messageAuthor.inventory[i].customCode)
+                                                    if (messageAuthor.inventory[i].quantity <= 0) {
+                                                        messageAuthor.inventory.splice(i,1)
+                                                    }
                                                 }
-                                                message.channel.send(outputMessage)
-                                                break
                                             }
-                                            if (item.toLowerCase() == parsedMessage[1].toLowerCase()) {
-                                                placeFound = true
-                                                if (messageAuthor.money >= places[item].cost) {
-                                                    messageAuthor.money -= places[item].cost
-                                                    messageAuthor.expToNextLevel -= places[item].xp
-                                                    message.channel.send(`Success! You now have $${messageAuthor.money}`)
-                                                } else {
-                                                    message.channel.send(`Not enough money to go to ${item}!`)
+                                            if (!itemFound) message.channel.send(`Item ${parsedMessage[2]} not found in inventory!`)
+                                    }
+                                    if (!parsedMessage[1]) message.channel.send("Please choose a command! ('use'|'list')")
+                                    break
+                                case 'trader':
+                                    switch (parsedMessage[1]) {
+                                        case 'list':
+                                            message.channel.send(listItemsFromArray(traderInStock))
+                                            break
+                                        case 'buy':
+                                            let itemFound = false
+                                            for (let i = 0; i < traderInStock.length; i++) {
+
+                                                if (traderInStock[i].name.toLowerCase() == parsedMessage[2].toLowerCase()) {
+                                                    itemFound = true
+                                                    let quantity = parseInt(parsedMessage[3])
+                                                    if (!quantity) quantity = 1
+                                                    if (quantity > traderInStock[i].quantity) quantity = traderInStock[i].quantity
+                                                    if (traderInStock[i].cost * quantity > messageAuthor.money) {
+                                                        message.channel.send("Cannot afford!")
+                                                    } else {
+                                                        let inventoryIncludesItem = false
+                                                        for (let ii = 0; ii < messageAuthor.inventory.length; i++) {
+                                                            if (messageAuthor.inventory[ii].name == traderInStock[i].name) {
+                                                                messageAuthor.inventory[ii].quantity += quantity
+                                                                inventoryIncludesItem = true
+                                                            }
+                                                            break
+                                                        }
+                                                        if (!inventoryIncludesItem) {
+                                                            messageAuthor.inventory.push(cloneDB(traderInStock[i]))
+                                                            messageAuthor.inventory[messageAuthor.inventory.length - 1].quantity = quantity
+                                                        }
+                                                        message.channel.send(`Success! Brought ${quantity} **${traderInStock[i].name}(s)**`)
+                                                    }
+
+                                                    traderInStock[i].quantity -= quantity
+                                                    if (traderInStock[i].quantity === 0) traderInStock.splice(i, 1)
+                                                    break
                                                 }
+                                            }
+                                            if (!itemFound) message.channel.send(`Item ${parsedMessage[2]} not found. If you are buying an item with multiple words in its name, please enclose its name in "quotation marks"`)
+                                            break
+                                        default:
+                                            message.channel.send(`command ${parsedMessage[1]} not reconised`)
+                                            break
+                                    }
+                                    break
+                                case 'learn':
+                                    if (checkStamina(5)) {
+                                        const places = {
+                                            'Communitycollege': {
+                                                'emoji': '🏫',
+                                                'cost': 0,
+                                                'xp': 100,
+                                            },
+                                            'College': {
+                                                'emoji': '🎓',
+                                                'cost': 100,
+                                                'xp': 500
+                                            },
+                                            'University': {
+                                                'emoji': '🏢',
+                                                'cost': 1000,
+                                                'xp': 7500
                                             }
                                         }
-                                        if (!placeFound) message.channel.send("Place not found!")
+                                        if (!parsedMessage[1]) {
+                                            message.channel.send("Please specify a place to learn!")
+                                        } else {
+                                            let placeFound = false
+                                            for (let item in places) {
+                                                if (parsedMessage[1] == 'list') {
+                                                    let outputMessage = ''
+                                                    for (let item2 in places) {
+                                                        outputMessage += `${places[item2].emoji}\`${item2}\`: costing $${places[item2].cost} and giving you ${places[item2].xp} XP.\n`
+                                                    }
+                                                    message.channel.send(outputMessage)
+                                                    break
+                                                }
+                                                if (item.toLowerCase() == parsedMessage[1].toLowerCase()) {
+                                                    placeFound = true
+                                                    if (messageAuthor.money >= places[item].cost) {
+                                                        messageAuthor.money -= places[item].cost
+                                                        messageAuthor.expToNextLevel -= places[item].xp
+                                                        message.channel.send(`Success! You now have $${messageAuthor.money}`)
+                                                    } else {
+                                                        message.channel.send(`Not enough money to go to ${item}!`)
+                                                    }
+                                                }
+                                            }
+                                            if (!placeFound) message.channel.send("Place not found!")
+                                        }
                                     }
                                     break
                                 case 'work':
                                     //functionality for working
-                                    let moneyEarned = Math.round(Math.random() * 10 * messageAuthor.level + 3 / 10 + messageAuthor.level ** 2 / 3)
-                                    let xpEarned = moneyEarned * 3 * Math.random()
-                                    const possibleJobs = ['washed the car',
-                                        'helped the neighbour commit arson',
-                                        'helped a Javascript developer',
-                                        'learned how to write a hello world program',
-                                        'DDOSed a major website',
-                                        'cut the prickly grass',
-                                        'studied some calculus',
-                                        'stacked some boxes in a supermarket',
-                                        'made some fries at a fast food place',
-                                        'fried some egg fried rice']
-                                    if (messageAuthor.ownCar && Math.random() < .2) {
-                                        let amountEarnedFromStranger = Math.round(Math.random() * 50 * (messageAuthor.level) + 3) / 10 + messageAuthor.level * 10
-                                        messageAuthor.money += amountEarnedFromStranger
-                                        messageAuthor.netWorth += amountEarnedFromStranger
-                                        message.channel.send(`You earned $${commentNo(amountEarnedFromStranger)} from a stranger that hitchhiked in your car`)
+                                    console.log(messageAuthor, messageAuthor.stamina)
+                                    if (checkStamina(5)) {
+                                        let moneyEarned = Math.round(Math.random() * 10 * messageAuthor.level + 3 / 10 + messageAuthor.level ** 2 / 3)
+                                        let xpEarned = moneyEarned * 3 * Math.random()
+                                        const possibleJobs = ['washed the car',
+                                            'helped the neighbour commit arson',
+                                            'helped a Javascript developer',
+                                            'learned how to write a hello world program',
+                                            'DDOSed a major website',
+                                            'cut the prickly grass',
+                                            'studied some calculus',
+                                            'stacked some boxes in a supermarket',
+                                            'made some fries at a fast food place',
+                                            'fried some egg fried rice']
+                                        if (messageAuthor.ownCar && Math.random() < .2) {
+                                            let amountEarnedFromStranger = Math.round(Math.random() * 50 * (messageAuthor.level) + 3) / 10 + messageAuthor.level * 10
+                                            messageAuthor.money += amountEarnedFromStranger
+                                            messageAuthor.netWorth += amountEarnedFromStranger
+                                            message.channel.send(`You earned $${commentNo(amountEarnedFromStranger)} from a stranger that hitchhiked in your car`)
+                                        }
+                                        message.channel.send(`${message.author.username} earned $${commentNo(moneyEarned)} and ${Math.round(xpEarned)} experience: ${messageAuthor.pronoun} ${possibleJobs[Math.floor(Math.random() * possibleJobs.length)]}`)
+                                        db[message.author.id].money += moneyEarned
+                                        db[message.author.id].netWorth += moneyEarned
+                                        db[message.author.id].expToNextLevel -= xpEarned
+                                        messageAuthor.timesWorked++
                                     }
-                                    message.channel.send(`${message.author.username} earned $${commentNo(moneyEarned)} and ${Math.round(xpEarned)} experience: ${messageAuthor.pronoun} ${possibleJobs[Math.floor(Math.random() * possibleJobs.length)]}`)
-                                    db[message.author.id].money += moneyEarned
-                                    db[message.author.id].netWorth += moneyEarned
-                                    db[message.author.id].expToNextLevel -= xpEarned
-                                    messageAuthor.timesWorked++
                                     break
                                 case 'ping':
                                     message.channel.send("Pinging...").then(m => {
@@ -861,7 +1025,9 @@ Please ensure that you're using a mention to unban a user.`)
                                     let userId
                                     message.mentions.users.first() ? userId = message.mentions.users.first().id : userId = message.author.id
                                     let userInfo = {
-                                        moneyPerSec: 0
+                                        moneyPerSec: 0,
+                                        staminaCurrent: messageAuthor.stamina.current,
+                                        staminaMax: messageAuthor.stamina.max
                                     }
                                     const stats = ['messageCount', 'timesWorked', 'username', 'level', 'expToNextLevel', 'money']
                                     stats.forEach(e => userInfo[e] = db[userId][e])
@@ -873,12 +1039,15 @@ Please ensure that you're using a mention to unban a user.`)
                                     }
                                     try {
                                         message.channel.send(
-`**===Information for ${userInfo.username}===**
+                                            `**===Information for ${userInfo.username}===**
 Level: ${userInfo.level} (${Math.round(userInfo.expToNextLevel * 100) / 100} XP until level up)
 Money: $${commentNo(Math.round(userInfo.money * 100) / 100)} (Per second: $${userInfo.moneyPerSec})
 Computer(s) owned: ${userInfo.computerOwned}
 House(s) owned: ${userInfo.houseOwned}
 Mansion(s) owned: ${userInfo.mansionOwned}
+
+Stamina: ${userInfo.staminaCurrent} / ${userInfo.staminaMax}
+${drawStaminaBar()}
 **===Statistics===**
 Messages sent: ${userInfo.messageCount}
 Times worked: ${userInfo.timesWorked}`)
@@ -887,16 +1056,18 @@ Times worked: ${userInfo.timesWorked}`)
                                     }
                                     break
                                 case 'bribe':
-                                    if (!messageAuthor.bribed) {
-                                        if (messageAuthor.money >= 1000000) {
-                                            messageAuthor.money -= 1000000
-                                            messageAuthor.bribed = true
-                                            message.channel.send("Bribed politician! You will enjoy lower tax rates tomorrow")
+                                    if (checkStamina(3)) {
+                                        if (!messageAuthor.bribed) {
+                                            if (messageAuthor.money >= 1000000) {
+                                                messageAuthor.money -= 1000000
+                                                messageAuthor.bribed = true
+                                                message.channel.send("Bribed politician! You will enjoy lower tax rates tomorrow")
+                                            } else {
+                                                message.channel.send("Insufficent money to bribe politician!")
+                                            }
                                         } else {
-                                            message.channel.send("Insufficent money to bribe politician!")
+                                            message.channel.send("You've already bribed a politician!")
                                         }
-                                    } else {
-                                        message.channel.send("You've already bribed a politician!")
                                     }
                                     break
                                 case 'richest':
@@ -956,9 +1127,10 @@ Times worked: ${userInfo.timesWorked}`)
                             while (db[message.author.id].expToNextLevel <= 0) {
                                 leveledUp = true
                                 db[message.author.id].level++
-                                db[message.author.id].expToNextLevel = Math.ceil((messageAuthor.level ** 2) / 3 + 15) - (db[message.author.id].expToNextLevel)
+                                db[message.author.id].expToNextLevel = Math.ceil((messageAuthor.level ** 2) / 3 + 15) - Math.abs(db[message.author.id].expToNextLevel)
                             }
                             if (leveledUp) message.channel.send(`Congratulations to ${message.author.username}! You have reached level ${db[message.author.id].level}! You need ${Math.round(messageAuthor.expToNextLevel * 100) / 100} XP to the next level`)
+
                             if (Math.random() < .1 && !quicktimeTypeInProgress) {
                                 quicktimeTypePhrase = Math.round(Math.random() * 100).toString()
                                 let channel = message.channel
