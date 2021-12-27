@@ -193,7 +193,7 @@ readDB().then(results => {
                 item = traderItems[Math.floor(Math.random() * traderItems.length)]
             } while (traderIncludesItem(item.name))
             traderInStock.push(cloneDB(item))
-            traderInStock[traderInStock.length - 1].cost = Math.floor(item.costDefault + Math.random() * item.costVariation)
+            traderInStock[traderInStock.length - 1].cost = Math.floor(item.costDefault + Math.random() * item.costVariation * item.costDefault)
             traderInStock[traderInStock.length - 1].quantity = Math.floor(Math.random() * 7) + 3
         }
     }
