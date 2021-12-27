@@ -23,7 +23,7 @@ const helpMessages = {
 
 \`daily\`: claim your daily reward
 \`piracy\`: Sick of earning money the legitimate way? pirate and distribute the latest film for a lot of money **(3 stamina)**!
-\`arson\`: Burn down a random player's house (15 stamina).
+\`arson\`: Burn down a random player's house **(15 stamina)**.
 
 \`bribe\`: Bribe a politician for lower tax rates for one day **(3 stamina)**.
 
@@ -53,7 +53,7 @@ These commands are only avaliable to the admin whose ID exists within the index.
 \`info\`: Displays some basic information about you.
 \`help\`: You've already stumbled upon this command I think you know what this does.
 
-\`watchMessage\` [message]: Watch when a user sends this message containing this phrase. When this happens. Ialert you with a DM. Message can include spaces
+\`watchMessage\` [message]: Watch when a user sends this message containing this phrase. When this happens, CrapBot alerts you with a DM. Message can include spaces
 \`removeWatch\`: Stop watching this message
 
 \`love\` [thing]: Do you love something and want the world to know how much you love it? Use this command!
@@ -69,13 +69,13 @@ const dbDefault = {
         devMode: false,
         stuffOwned: {
             computer: {
-                value: 1
+                value: .1
             },
             house: {
-                value: 10
+                value: 1
             },
             mansion: {
-                value: 1200
+                value: 120
             }
         },
         mostloved: {},
@@ -156,7 +156,7 @@ readDB().then(results => {
                 }
             }
         }
-    }, 2000)
+    }, 10000)
     function commentNo(a) {
         a = a.toString().split('')
         let output = []
@@ -182,7 +182,7 @@ readDB().then(results => {
         {
             name: 'Potion of Instant Stamina',
             description: 'Instantly gives you 500 stamina, regardless of your stamina cap!',
-            costDefault: 7500,
+            costDefault: 25500,
             costVariation: 0.2,
             quantityLowerLimit: 5,
             quantityUpperLimit: 20,
@@ -836,7 +836,7 @@ Please ensure that you're using a mention to unban a user.`)
                                     const thingsToBuy = {
                                         'computer': {
                                             price: 15000,
-                                            'description': ':computer:**computer ($15000)**: give you ONE dollar a second. Can be purchased multiple times',
+                                            'description': ':computer:**computer ($15000)**: give you $0.1 a second. Can be purchased multiple times',
                                             condition: function () {
                                                 return true
                                             }
@@ -888,7 +888,7 @@ Please ensure that you're using a mention to unban a user.`)
                                             condition: function () {
                                                 return true
                                             },
-                                            'description': '**🏠House($100,000)**: an expensive investment, but nets you $10 per second!',
+                                            'description': '**🏠House($100,000)**: an expensive investment, but nets you $1 per second!',
                                         },
                                         'mansion': {
                                             price: 10000000,
@@ -899,7 +899,7 @@ Please ensure that you're using a mention to unban a user.`)
                                                     message.channel.send("The real estate agency said that you have to prove your worth before buying a mansion. Please purchase at least 10 houses")
                                                 }
                                             },
-                                            'description': '**🏛Mansion($10,000,000)**: even more expensive than houses, giving you $1200 per second!',
+                                            'description': '**🏛Mansion($10,000,000)**: even more expensive than houses, giving you $120 per second!',
                                         }
                                     }
                                     if (parsedMessage[1]) {
