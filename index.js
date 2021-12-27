@@ -13,29 +13,30 @@ const helpMessages = {
 **-I am a very crappy bot made by a 15 year old. I am very buggy. Please use me with caution-**\n`,
     categories: '\`economy, admin, general\`',
     'economy': `**ECONOMY**
-\`work\`: Work to earn some money (5 stamina)
+\`work\`: Work to earn some money **(5 stamina)**
 \`richest\` [optional number]: List the richest players. If a number is entered, then it will list that many players.
 
-\`buy\` [item|"list"] [optional quantity]: Buys a specified item or list all items avaliable to purchase.
 \`pay\` [mention|username] [amount]: Pays someone money
+\`buy\` [item|"list"] [optional quantity]: Buys a specified item or list all items avaliable to purchase.
+\`learn\` [place|"list"]: Go somewhere to learn so you can earn XP **(5 stamina)**.
+
 
 \`daily\`: claim your daily reward
-\`learn\` [place|"list"]: Go somewhere to learn so you can earn XP (5 stamina).
-
-\`piracy\`: Sick of earning money the legitimate way? pirate and distribute the latest film for a lot of money (3 stamina)!
+\`piracy\`: Sick of earning money the legitimate way? pirate and distribute the latest film for a lot of money **(3 stamina)**!
 \`arson\`: Burn down a random player's house (15 stamina).
 
-\`bribe\`: Bribe a politician for lower tax rates for one day (3 stamina).
-\`trader\` ['buy'|'list'] [item] : The wandering trader periodically restocks his trades.
+\`bribe\`: Bribe a politician for lower tax rates for one day **(3 stamina)**.
 
+\`trader\` ['buy'|'list'] [item] : The wandering trader periodically restocks his trades.
 \`inventory\` ['list'|'use'] [item]: Lists your inventory, or uses an item from your inventory`,
 
-'admin': `**ADMINISTRATION**
+    'admin': `**ADMINISTRATION**
 These commands are only avaliable to the admin whose ID exists within the index.js file
 \`clearall\`: USE WITH CAUTION, will delete EVERYONE's data
 \`save\`: saves the database
 
 \`allusers\`: Outputs everyone in the database
+
 \`setMoney\` [userId, money]: sets the money of a specified user to the money count
 
 \`addallowedchannel\`: add a channel to the list of channels that CrapBot is allowed to operate on
@@ -48,17 +49,17 @@ These commands are only avaliable to the admin whose ID exists within the index.
 
     'general': `**GENERAL**
 \`changepronoun\` [pronoun]: Change your pronoun. Pronoun must be between 2 - 8 characters and only contain letters.
+
 \`info\`: Displays some basic information about you.
-
 \`help\`: You've already stumbled upon this command I think you know what this does.
-\`watchMessage\` [message]: Watch when a user sends this message containing this phrase. When this happens. Ialert you with a DM. Message can include spaces
 
+\`watchMessage\` [message]: Watch when a user sends this message containing this phrase. When this happens. Ialert you with a DM. Message can include spaces
 \`removeWatch\`: Stop watching this message
-\`ping\`: Respondes with 'pong' and your latency.
 
 \`love\` [thing]: Do you love something and want the world to know how much you love it? Use this command!
 \`mostLoved\`: see the top 5 most loved thing by all users of CrapBot
 
+\`ping\`: Respondes with 'pong' and your latency.
 \`echo\`: crapbot will say what you say!`
 }
 let db
@@ -102,7 +103,7 @@ function readDB() {
     console.log("Reading database...")
     return new Promise((resolve, reject) => {
         fs.readFile('./basicDB.txt', 'utf-8', (error, data) => {
-            if (error)console.log(error.message)
+            if (error) console.log(error.message)
             if (!data) {
                 console.log("No data detected in DB!")
                 console.log('Creating database...')
@@ -149,10 +150,10 @@ readDB().then(results => {
         const gainStaminaPer2Sec = 2
         for (let item in db) {
             if (!['messagesWatched', 'adminData'].includes(item)) {
-                 if (db[item].stamina.current < db[item].stamina.max) {
+                if (db[item].stamina.current < db[item].stamina.max) {
                     db[item].stamina.current += gainStaminaPer2Sec * db[item].stamina.gainMultiplier
                     if (db[item].stamina.current > db[item].stamina.max) db[item].stamina.current = db[item].stamina.max
-                } 
+                }
             }
         }
     }, 2000)
@@ -256,15 +257,15 @@ readDB().then(results => {
             condition: _ => true
         },
         'wildcard ticket': {
-            customCode: function(messageAuthor, messageChannel) {
+            customCode: function (messageAuthor, messageChannel) {
                 const moneyGained = messageAuthor.netWorth * 0.01
                 messageAuthor.money += moneyGained
                 messageChannel.send(`You used a wildcard for $${commentNo(Math.round(moneyGained * 100) / 100)}. You now have $${commentNo(Math.round(messageAuthor.money * 100) / 100)}`)
                 if (Math.random() < 0.25) {
-                    for (let i = 0; i < messageAuthor.inventory.length;i++) {
+                    for (let i = 0; i < messageAuthor.inventory.length; i++) {
                         if (messageAuthor.inventory[i].name.toLowerCase() == 'wildcard ticket') {
                             messageAuthor.inventory[i].quantity--
-                            if (messageAuthor.inventory[i].quantity <= 0) messageAuthor.inventory.splice(i,1)
+                            if (messageAuthor.inventory[i].quantity <= 0) messageAuthor.inventory.splice(i, 1)
                         }
                     }
                     messageChannel.send("A wildcard ticket broke!")
@@ -280,7 +281,7 @@ readDB().then(results => {
                 return false
             },
             subtractItem: true,
-            customCode: function(messageAuthor, messageChannel) {
+            customCode: function (messageAuthor, messageChannel) {
                 if (Math.random() < .5) {
                     messageAuthor.money += 1000000
                     messageChannel.send(`You won big! One million dollars has been added to your account! You now have ${commentNo(Math.round(messageAuthor.money * 100) / 100)}`)
@@ -670,25 +671,24 @@ Please ensure that you're using a mention to unban a user.`)
                                     if (parsedMessage.length > 0) message.channel.send(parsedMessage.join(' ').replaceAll(prefix, ''))
                                     break
                                 case 'arson':
-                                    if (checkStamina(15)) {
-                                        let arsonDate = new Date()
-                                        let now = arsonDate.getTime()
-                                        if (now - parseInt(messageAuthor.lastArson) > 240000) {
-                                            let allPlayers = Object.keys(db.adminData.housesOwned)
-                                            allPlayers.splice(allPlayers.indexOf(message.author.id), 1)
-                                            message.channel.send(JSON.stringify(allPlayers))
-                                            allPlayers = allPlayers.filter(e => db.adminData.housesOwned[e] >= 100)
-                                            if (allPlayers.length >= 1) {
+                                    let arsonDate = new Date()
+                                    let now = arsonDate.getTime()
+                                    if (now - parseInt(messageAuthor.lastArson) > 240000) {
+                                        let allPlayers = Object.keys(db.adminData.stuffOwned.house)
+                                        allPlayers.splice(allPlayers.indexOf(message.author.id), 1)
+                                        allPlayers = allPlayers.filter(e => db.adminData.stuffOwned.house[e] >= 100)
+                                        if (allPlayers.length >= 1) {
+                                            if (checkStamina(15)) {
                                                 messageAuthor.lastArson = now
                                                 let player = allPlayers[Math.floor(Math.random() * allPlayers.length)]
-                                                db.adminData.housesOwned[player]--
-                                                message.channel.send(`You burned down ${db[player].username}'s house. ${db[player].username} now has ${db.adminData.housesOwned[player]} houses.`)
-                                            } else {
-                                                message.channel.send("You have noone to arson apart from yourself.")
+                                                db.adminData.stuffOwned.house[player]--
+                                                message.channel.send(`You burned down ${db[player].username}'s house. ${db[player].username} now has ${db.adminData.stuffOwned.house[player]} houses.`)
                                             }
                                         } else {
-                                            message.channel.send("Please wait a while longer before arsoning or you'll get caught by the police!")
+                                            message.channel.send("You have noone to arson apart from yourself.")
                                         }
+                                    } else {
+                                        message.channel.send("Please wait a while longer before arsoning or you'll get caught by the police!")
                                     }
                                     break
                                 case 'math':
@@ -829,7 +829,7 @@ Please ensure that you're using a mention to unban a user.`)
                                             }
                                         }
                                     } else {
-                                        message.channel.send("You need at least one computer to engage in internet piracy!")
+                                        message.channel.send("You need at least one computer to engage in internet piracy (!buy computer)!")
                                     }
                                     break
                                 case 'buy':
