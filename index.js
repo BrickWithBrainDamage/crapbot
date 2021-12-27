@@ -106,11 +106,8 @@ let experiences = {
 
 }
 let usersWithoutPronouns = []
-function save() {
-    fs.writeFile('./basicDB.txt', JSON.stringify(db, null, 1), (error) => {
-        if (error) console.log(error.message)
-    })
-}
+//why use many lines when you can use one?
+const save = _ => fs.writeFile('./basicDB.txt', JSON.stringify(db, null, 1), (error) => error ? console.log(error.message) : console.log(`Saved Database at ${timeConverter(new Date().getTime() / 1000)}`))
 function timeConverter(UNIX_timestamp) {
     var a = new Date(UNIX_timestamp * 1000);
     var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -125,20 +122,12 @@ function timeConverter(UNIX_timestamp) {
 }
 readDB().then(results => {
     console.log("Loaded database!")
-    setInterval(save, 15000)
     db = results
-    if (!db.adminData.hasOwnProperty('mansionOwned')) {
-        db.adminData.mansionOwned = {}
-    }
-    if (!db.adminData.hasOwnProperty('allowedChannels')) {
-        db.adminData.allowedChannels = []
-    }
+    setInterval(save, 90 /*change number on left for more readable seconds*/ * 1000)
     setInterval(() => {
         for (const item in db.adminData.stuffOwned) {
             for (const user in db.adminData.stuffOwned[item]) {
-                if (user !== 'value') {
-                    db[user].money += db.adminData.stuffOwned[item][user] * db.adminData.stuffOwned[item].value
-                }
+                if (user !== 'value') db[user].money += db.adminData.stuffOwned[item][user] * db.adminData.stuffOwned[item].value
             }
         }
     }, 1000)
@@ -164,13 +153,7 @@ readDB().then(results => {
         return output.join('').concat(tempSliced.join(''))
     }
     function explicitFilter(e) { //returns false if a word is inapporiate
-        const bannedWordsw = ['penis', 'dick', 'sex', 'filtertest', 'ass', 'bitch', 'fuck', 'nigger', 'nigga']
-        for (let i = bannedWordsw.length - 1; i >= 0; i--) {
-            if (e.toLowerCase().includes(bannedWordsw[i].toLowerCase())) {
-                return false
-            }
-        }
-        return true
+        return !/penis|vagina|fuck|bitch|ass|shit|regextest|nigg(a|er)/.test(e)
     }
     const pronounRegex = /^(?!.*(penis|vagina|fuck|bitch|ass|shit|regextest|nigg(a|er)))(?=[a-z]{2,10})(?![a-z]{11,})(?!\s)/i
     const verifyPronoun = e => pronounRegex.test(e)
@@ -234,7 +217,7 @@ readDB().then(results => {
                                 if (message.content.toLowerCase().includes(e.toLowerCase()) && !message.content.includes('removeWatch')) {
                                     client.users.cache.get(thing).send(`User **${message.author.username}** has sent the phrase **${e}** in the message **${message.content}** on **${timeConverter(message.createdTimestamp / 1000)}**`)
                                 }
-                            } catch { }
+                            } catch {}
                         })
                     }
                     //if we DONT have information for a user, then create an object for that user
@@ -271,7 +254,8 @@ readDB().then(results => {
                             messageAuthor.pronoun = message.content
                             message.channel.send(`Chaged ${message.author.username}'s pronoun to ${messageAuthor.pronoun}`)
                         } else {
-                            message.channel.send(`${message.content} is not a valid pronoun. Pronouns must be between 2 and 10 characters and not contain any inapporporiate words (pronoun must match regex \`${new String(pronounRegex)}\`).`)
+                            message.channel.send(
+`${message.content} is not a valid pronoun. Pronouns must be between 2 and 10 characters and not contain any inapporporiate words (pronoun must match regex \`${new String(pronounRegex)}\`).`)
                         }
                     }
 
@@ -293,9 +277,9 @@ readDB().then(results => {
                                     messageAuthor.taxRate = .1
                                 } else if (messageAuthor.money < 200000) {
                                     messageAuthor.taxRate = .15
-                                } else if (messageAuthor.money < 2000000) {
-                                    messageAuthor.taxRate = .2
                                 } else if (messageAuthor.money < 1000000) {
+                                    messageAuthor.taxRate = .2
+                                } else if (messageAuthor.money < 2000000) {
                                     messageAuthor.taxRate = .25
                                 } else if (messageAuthor.money < 10000000) {
                                     messageAuthor.taxRate = .3
@@ -314,7 +298,7 @@ readDB().then(results => {
                             let parsedMessage = []
                             //regex to remove mroe than 1 space between letters
                             let unparsedMessage = message.content.replaceAll(/(?<=\s)\s/g, '').split('')
-                            unparsedMessage.splice(0, 1)
+                            unparsedMessage.splice(0, 1) //remove exclamination mark at start of message
                             while (unparsedMessage.length > 0) {
                                 let nextSpliceIndex
                                 let str
@@ -403,17 +387,21 @@ readDB().then(results => {
                                         }
                                         let reason = parsedMessage[2]
                                         db.adminData.banned[user] = reason
-                                        message.channel.send(`Banned user for ${reason}`)
+                                        if (!reason) reason = `because ${message.author.username} doesn't like you (or, more likely, is testing out the !ban command code)`
+                                        message.channel.send(`Banned user ${reason}`)
                                         break
                                     case 'unban':
                                         try {
                                             let user = parsedMessage[1]
-                                            if (user.match(/<@![0-9]+>/)) {
-                                                user = user.match(/[0-9]+/)
-                                            }
+                                            user = user.match(/\d+/)
+                                            //if (user.match(/<@!\d+>/)) {
+                                            //    user = user.match(/\d+/)
+                                            //}
+                                            message.channel.send(`Successfully unbanned user with id ${user}`)
                                             delete db.adminData.banned[user]
                                         } catch (e) {
-                                            message.channel.send(`Error unbanning user (${e.message}), probably because the user was never banned`)
+                                            message.channel.send(`Error unbanning user (${e.message}), probably because the user was never banned.
+Please ensure that you're using a mention to unban a user.`)
                                         }
                                         break
                                     case 'clearall':
@@ -983,7 +971,7 @@ Times worked: ${userInfo.timesWorked}`)
                                 }, 10000)
                             }
                         } else {
-                            message.channel.send(`You have been banned for ${userBannedReason}`)
+                            message.channel.send(`You have been banned ${userBannedReason}`)
                         }
                     }
 
