@@ -344,11 +344,13 @@ readDB().then(results => {
                                 //admin debug commands
                                 switch (parsedMessage[0].toLowerCase()) {
                                     case 'setmoney':
-                                        if (db.hasOwnProperty(parsedMessage[1])) {
-                                            let netWorthGain = parseInt(parsedMessage[2].match(/[0-9]+/)[0]) - db[parsedMessage[1]].money
-                                            db[parsedMessage[1]].money = parseInt(parsedMessage[2])
-                                            db[parsedMessage[1]].netWorth += netWorthGain
-                                            message.channel.send(`User ${parsedMessage[1]} now has $${commentNo(Math.round(db[parsedMessage[1]].money * 100) / 100)} (total net worth ${db[parsedMessage[1]].netWorth})`)
+                                        let userId = parsedMessage[1].match(/\d+/)[0]
+                                        let moneyToSet = parseInt(parsedMessage[2].match(/[0-9]+/)[0])
+                                        if (db.hasOwnProperty(userId)) {
+                                            let netWorthGain = parseInt(moneyToSet) - db[userId].money
+                                            db[userId].money = moneyToSet
+                                            db[userId].netWorth += netWorthGain
+                                            message.channel.send(`User with id ${userId} now has $${commentNo(Math.round(db[userId].money * 100) / 100)} (total net worth ${db[userId].netWorth})`)
                                         } else {
                                             message.channel.send(`${parsedMessage[1]} not found!`)
                                         }
@@ -871,22 +873,21 @@ readDB().then(results => {
                                     let userId
                                     message.mentions.users.first() ? userId = message.mentions.users.first().id : userId = message.author.id
                                     let userInfo = {
-                                        /* messageCount: db[userId].messageCount,
-                                        timesWorked: db[userId].timesWorked,
-                                        username: db[userId].username,
-                                        level: db[userId].level,
-                                        expToNextLevel: db[userId].expToNextLevel */
+                                        moneyPerSec: 0
                                     }
                                     const stats = ['messageCount', 'timesWorked', 'username', 'level', 'expToNextLevel', 'money']
                                     stats.forEach(e => userInfo[e] = db[userId][e])
                                     for (const item in db.adminData.stuffOwned) {
-                                        db.adminData.stuffOwned[item][userId] ? userInfo[`${item}Owned`] = db.adminData.stuffOwned[item][userId] : userInfo[`${item}Owned`] = 0
+                                        let thingOwned = 0
+                                        if (db.adminData.stuffOwned[item][userId]) thingOwned = db.adminData.stuffOwned[item][userId]
+                                        userInfo.moneyPerSec += thingOwned * db.adminData.stuffOwned[item].value
+                                        userInfo[`${item}Owned`] = thingOwned
                                     }
                                     try {
                                         message.channel.send(
 `**===Information for ${userInfo.username}===**
 Level: ${userInfo.level} (${Math.round(userInfo.expToNextLevel * 100) / 100} XP until level up)
-Money: $${commentNo(Math.round(userInfo.money * 100) / 100)}
+Money: $${commentNo(Math.round(userInfo.money * 100) / 100)} (Per second: $${userInfo.moneyPerSec})
 Computer(s) owned: ${userInfo.computerOwned}
 House(s) owned: ${userInfo.houseOwned}
 Mansion(s) owned: ${userInfo.mansionOwned}
