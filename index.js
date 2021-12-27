@@ -145,6 +145,17 @@ readDB().then(results => {
             }
         }
     }, 1000)
+    setInterval(_ => {
+        const gainStaminaPer2Sec = 2
+        for (let item in db) {
+            if (!['messagesWatched', 'adminData'].includes(item)) {
+                 if (db[item].stamina.current < db[item].stamina.max) {
+                    db[item].stamina.current += gainStaminaPer2Sec * db[item].stamina.gainMultiplier
+                    if (db[item].stamina.current > db[item].stamina.max) db[item].stamina.current = db[item].stamina.max
+                } 
+            }
+        }
+    }, 2000)
     function commentNo(a) {
         a = a.toString().split('')
         let output = []
