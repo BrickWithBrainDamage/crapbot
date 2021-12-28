@@ -5,7 +5,8 @@ Warning: this bot has very terrible code. I am too lazy to refactor. Please, if 
 Yes, I have the token in the commit history. No, the token does not work because I regenerated it. I'm dumb but I'm not that dumb.
 ## Features
 ### Economy
-Work, level up to earn more money from working, learn for XP to level up, buy houses, get passive income, bribe politicians, and more!
+Work, level up to earn more money from working, learn for XP to level up, use potions, roll the godly dice, buy houses, get passive income, bribe politicians, and more! Become a quadrillionaire!<br>
+The newest update adds wandering traders (which are actually useful) that will sell you all sorts of items, and an inventory to store these items.
 ### Message watching
 Use the command !watchMessage to watch for a phrase on a server that CrapBot is on. When that message is recieved, CrapBot will DM you. Use !removeWatch to stop watching a message.
 ### Love
