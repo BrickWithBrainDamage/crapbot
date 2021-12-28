@@ -20,6 +20,7 @@ const helpMessages = {
 \`buy\` [item|"list"] [optional quantity]: Buys a specified item or list all items avaliable to purchase.
 \`learn\` [place|"list"]: Go somewhere to learn so you can earn XP **(Default: 5 stamina)**.
 
+\`togglebroadcaststamina\`: Toggles between CrapBot telling you how much stamina you have after an action and remaining silent
 
 \`daily\`: claim your daily reward
 \`piracy\`: Sick of earning money the legitimate way? pirate and distribute the latest film for a lot of money **(Default: 3 stamina)**!
@@ -116,14 +117,6 @@ function readDB() {
             }
         })
     })
-}
-const staminaCosts = {
-    work: 5,
-    workCar: 3,
-    learn: 5,
-    bribe: 3,
-    arson: 15,
-    piracy: 3,
 }
 let usersWithoutPronouns = []
 //why use many lines when you can use one?
@@ -296,7 +289,7 @@ readDB().then(results => {
             },
             subtractItem: true,
             customCode: function (messageAuthor, messageChannel) {
-                if (Math.random() < .5) {
+                if (Math.random() < .75) {
                     messageAuthor.money += 1000000
                     messageChannel.send(`You won big! One million dollars has been added to your account! You now have ${commentNo(Math.round(messageAuthor.money * 100) / 100)}`)
                 } else {
@@ -341,6 +334,19 @@ ${e[i].quantity} remaining\n`
     let tooSlow
     client.on('messageCreate', message => {
         try {
+            let messageAuthor = db[message.author.id]
+            const staminaCosts = {
+                get work() {
+                    if (messageAuthor.hasOwnProperty('ownCar')) return 3
+                    return 5
+                },
+                workCar: 3,
+                learn: 5,
+                bribe: 3,
+                arson: 15,
+                piracy: 3,
+            }
+
             let userBanned
             let userBannedReason
             for (let user in db.adminData.banned) {
@@ -349,8 +355,6 @@ ${e[i].quantity} remaining\n`
                     userBannedReason = db.adminData.banned[user]
                 }
             }
-            client.user.setActivity('Avaliable for you to rage at because this bot has terrible programming!')
-
             let channelAllowed = true
             if (db.adminData.allowedChannels.length >= 1) {
                 if (!db.adminData.allowedChannels.includes(message.channel.id)) {
@@ -424,15 +428,14 @@ ${e[i].quantity} remaining\n`
                                 'gainMultiplier': 1,
                                 'useMultiplier': 1
                             },
-                            'inventory': []
+                            'inventory': [],
+                            'broadcastStamina': false
                         }
                     }
                     //backwards compadibility by adding in keys not from previous versions
 
                     //wow such empty
 
-
-                    let messageAuthor = db[message.author.id]
                     if (usersWithoutPronouns.includes(message.author.username)) {
                         if (verifyPronoun(message.content)) {
                             usersWithoutPronouns.splice(usersWithoutPronouns.indexOf(message.author.username), 1)
@@ -452,6 +455,9 @@ ${e[i].quantity} remaining\n`
                     let sorted = []
 
                     if (message.content.startsWith(prefix)) {
+                        //if a message starts with the prefix, then it is a command and should NOT count as a message.
+                        //this has to be here because crapbot will increment the message count when a user sends a message regardless of whether it starts with the prefix or not
+                        messageAuthor.messageCount-- 
                         function drawStaminaBar() {
                             const barSize = 20
                             const eachBarWorth = messageAuthor.stamina.max / barSize
@@ -472,6 +478,7 @@ ${e[i].quantity} remaining\n`
                             //check if the stamina is enough, and if it is, subtract that stamina from the player's
                             if (messageAuthor.stamina.current - amount * messageAuthor.stamina.useMultiplier > 0) {
                                 messageAuthor.stamina.current -= amount * messageAuthor.stamina.useMultiplier
+                                if (messageAuthor.broadcastStamina) message.channel.send(`You have ${messageAuthor.stamina.current} remaining. You used ${amount * messageAuthor.stamina.useMultiplier} stamina.`)
                                 return true
                             }
                             message.channel.send(`You do not have enough stamina! You have ${messageAuthor.stamina.current} when ${amount} is needed
@@ -653,7 +660,7 @@ Please ensure that you're using a mention to unban a user.`)
                                 }
                             } else {
                                 const adminCommands = ['allusers', 'shutdown', 'save', 'toggledevmode', 'unban', 'ban', 'removeallowedchannel', 'addallowedchannel',
-                                    'setpronoun', 'setmoney']
+                                    'setpronoun', 'setmoney', 'restocktrader']
                                 if (adminCommands.includes(parsedMessage[0].toLowerCase())) message.channel.send("Hey, you're not an admin! What are you doing?")
                             }
                             switch (parsedMessage[0].toLowerCase()) {
@@ -686,6 +693,15 @@ Please ensure that you're using a mention to unban a user.`)
                                         message.channel.send(`Removed message **${stopWatchingPhrase}** from watchlist!`)
                                     } else {
                                         message.channel.send('Watchlist does not include message')
+                                    }
+                                    break
+                                case 'togglestaminabroadcast':
+                                    if (messageAuthor.broadcastStamina) {
+                                        messageAuthor.broadcastStamina = false
+                                        message.channel.send("Broadcasting stamina toggled **off**")
+                                    } else {
+                                        messageAuthor.broadcastStamina = true
+                                        message.channel.send("Broadcasting stamina toggled **on**")
                                     }
                                     break
                                 case 'echo':
@@ -1114,13 +1130,7 @@ Please ensure that you're using a mention to unban a user.`)
                                     break
                                 case 'work':
                                     //functionality for working
-                                    let staminaCost 
-                                    if (messageAuthor.ownCar) {
-                                        staminaCost = staminaCosts.workCar
-                                    } else {
-                                        staminaCost = staminaCosts.work
-                                    }
-                                    if (checkStamina(staminaCost)) {
+                                    if (checkStamina(staminaCosts.work)) {
                                         let moneyEarned = Math.round(Math.random() * 10 * messageAuthor.level + 3 / 10 + messageAuthor.level ** 2 / 3)
                                         let xpEarned = moneyEarned * 3 * Math.random()
                                         const possibleJobs = ['washed the car',
@@ -1132,8 +1142,11 @@ Please ensure that you're using a mention to unban a user.`)
                                             'studied some calculus',
                                             'stacked some boxes in a supermarket',
                                             'made some fries at a fast food place',
-                                            'fried some egg fried rice']
-                                        if (messageAuthor.ownCar && Math.random() < .2) {
+                                            'fried some egg fried rice',
+                                            'mowed the lawn',
+                                            'roasted people on StackOverflow',
+                                            'learned how to hack']
+                                        if (messageAuthor.hasOwnProperty('ownCar') && Math.random() < .2) {
                                             let amountEarnedFromStranger = Math.round(Math.random() * 50 * (messageAuthor.level) + 3) / 10 + messageAuthor.level * 10
                                             messageAuthor.money += amountEarnedFromStranger
                                             messageAuthor.netWorth += amountEarnedFromStranger
@@ -1182,7 +1195,7 @@ Mansion(s) owned: ${userInfo.mansionOwned}
 Stamina: ${userInfo.staminaCurrent} / ${userInfo.staminaMax}
 ${drawStaminaBar()}
 **===Statistics===**
-Messages sent: ${userInfo.messageCount}
+Messages sent (excluding commands): ${userInfo.messageCount}
 Times worked: ${userInfo.timesWorked}`)
                                     } catch (e) {
                                         message.channel.send(`Error retrieving user info! This is probably because the user has never used this bot. ${e.message}`)
@@ -1296,6 +1309,7 @@ Times worked: ${userInfo.timesWorked}`)
     })
     client.on('ready', () => {
         console.log(`Logged in as ${client.user.tag}!`);
+        client.user.setActivity('Avaliable for you to rage at because this bot has terrible programming!')
     });
     client.on("presenceUpdate", function (oldMember, newMember) {
         // console.log(`a guild member's presence changes`, oldMember, newMember);
