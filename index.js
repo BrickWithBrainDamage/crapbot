@@ -13,19 +13,19 @@ const helpMessages = {
 **-I am a very crappy bot made by a 15 year old. I am very buggy. Please use me with caution-**\n`,
     categories: '\`economy, admin, general\`',
     'economy': `**ECONOMY**
-\`work\`: Work to earn some money **(5 stamina)**
+\`work\`: Work to earn some money **(Default: 5 stamina)**
 \`richest\` [optional number]: List the richest players. If a number is entered, then it will list that many players.
 
 \`pay\` [mention|username] [amount]: Pays someone money
 \`buy\` [item|"list"] [optional quantity]: Buys a specified item or list all items avaliable to purchase.
-\`learn\` [place|"list"]: Go somewhere to learn so you can earn XP **(5 stamina)**.
+\`learn\` [place|"list"]: Go somewhere to learn so you can earn XP **(Default: 5 stamina)**.
 
 
 \`daily\`: claim your daily reward
-\`piracy\`: Sick of earning money the legitimate way? pirate and distribute the latest film for a lot of money **(3 stamina)**!
-\`arson\`: Burn down a random player's house **(15 stamina)**.
+\`piracy\`: Sick of earning money the legitimate way? pirate and distribute the latest film for a lot of money **(Default: 3 stamina)**!
+\`arson\`: Burn down a random player's house **(Default: 15 stamina)**.
 
-\`bribe\`: Bribe a politician for lower tax rates for one day **(3 stamina)**.
+\`bribe\`: Bribe a politician for lower tax rates for one day **(Default: 3 stamina)**.
 
 \`trader\` ['buy'|'list'] [item] : The wandering trader periodically restocks his trades.
 \`inventory\` ['list'|'use'] [item]: Lists your inventory, or uses an item from your inventory`,
@@ -117,8 +117,13 @@ function readDB() {
         })
     })
 }
-let experiences = {
-
+const staminaCosts = {
+    work: 5,
+    workCar: 3,
+    learn: 5,
+    bribe: 3,
+    arson: 15,
+    piracy: 3,
 }
 let usersWithoutPronouns = []
 //why use many lines when you can use one?
@@ -214,6 +219,15 @@ readDB().then(results => {
             emoji: '🎲',
             quantityUpperLimit: 1,
             quantityLowerLimit: 3
+        },
+        {
+            name: 'Omega Potion',
+            emoji: '⭕',
+            description: 'Drink this to increase your max stamina by 15!',
+            costDefault: 50000,
+            costVariation: 0.5,
+            quantityUpperLimit: 3,
+            quantityLowerLimit: 1
         }
     ]
     let traderInStock = []
@@ -289,6 +303,15 @@ readDB().then(results => {
                     messageAuthor.money -= 100000
                     messageChannel.send(`God, RNG, and Math.random() does not like you. You lost $100,000. You now have ${commentNo(Math.round(messageAuthor.money * 100) / 100)}`)
                 }
+            }
+        },
+        'omega potion': {
+            condition: _ => true,
+            subtractItem: true,
+            customCode: function (messageAuthor, messageChannel) {
+                messageAuthor.stamina.max += 15
+                messageAuthor.stamina.current += 15
+                messageChannel.send(`You increased your cap by 15! You now have ${messageAuthor.stamina.max} max stamina.`)
             }
         }
     }
@@ -1091,7 +1114,13 @@ Please ensure that you're using a mention to unban a user.`)
                                     break
                                 case 'work':
                                     //functionality for working
-                                    if (checkStamina(5)) {
+                                    let staminaCost 
+                                    if (messageAuthor.ownCar) {
+                                        staminaCost = staminaCosts.workCar
+                                    } else {
+                                        staminaCost = staminaCosts.work
+                                    }
+                                    if (checkStamina(staminaCost)) {
                                         let moneyEarned = Math.round(Math.random() * 10 * messageAuthor.level + 3 / 10 + messageAuthor.level ** 2 / 3)
                                         let xpEarned = moneyEarned * 3 * Math.random()
                                         const possibleJobs = ['washed the car',
