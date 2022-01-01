@@ -20,7 +20,7 @@ const helpMessages = {
 \`buy\` [item|"list"] [optional quantity]: Buys a specified item or list all items avaliable to purchase.
 \`learn\` [place|"list"]: Go somewhere to learn so you can earn XP **(Default: 5 stamina)**.
 
-\`togglebroadcaststamina\`: Toggles between CrapBot telling you how much stamina you have after an action and remaining silent
+\`togglestaminabroadcast\`: Toggles between CrapBot telling you how much stamina you have after an action and remaining silent
 
 \`daily\`: claim your daily reward
 \`piracy\`: Sick of earning money the legitimate way? pirate and distribute the latest film for a lot of money **(Default: 3 stamina)**!
@@ -46,7 +46,9 @@ These commands are only avaliable to the admin whose ID exists within the index.
 \`ban\` [user]: Bans a specific user.
 \`unban\` [user]: Guess what this does
 
-\`restockTrader\`: Restocks the wandering trader with different wares`,
+\`restockTrader\`: Restocks the wandering trader with different wares,
+
+\`toggleallowdadjoke\`: toggles the boolean db.adminData.allowDadJoke, used to tell, well, dad jokes.`,
 
     'general': `**GENERAL**
 \`changepronoun\` [pronoun]: Change your pronoun. Pronoun must be between 2 - 8 characters and only contain letters.
@@ -64,9 +66,24 @@ These commands are only avaliable to the admin whose ID exists within the index.
 \`echo\`: crapbot will say what you say!`
 }
 let db
+function askQuestion() {
+    for (let user in mathInProgress) {
+        let question = `${Math.floor(Math.random() * 10)} ${['+', '-', '*'][Math.floor(Math.random() * 3)]} ${Math.floor(Math.random() * 10)}`
+        mathInProgress[user].expectedResponse = eval(question)
+        message.channel.send(question)
+        tooSlow = setTimeout(() => {
+            let messageChannel = message.channel
+            messageChannel.send("TOO SLOW")
+            db[user].money += mathInProgress[user].moneyEarned
+            messageChannel.send(`You earned $${mathInProgress[user].moneyEarned}`)
+            delete mathInProgress[user]
+        }, 7500)
+    }
+}
 const dbDefault = {
     messagesWatched: {},
     adminData: {
+        allowDadJoke: true,
         devMode: false,
         stuffOwned: {
             computer: {
@@ -312,7 +329,7 @@ readDB().then(results => {
     function explicitFilter(e) { //returns false if a word is inapporiate
         return !/penis|vagina|fuck|bitch|ass|shit|regextest|nigg(a|er)/.test(e)
     }
-    const pronounRegex = /^(?!.*(penis|vagina|fuck|bitch|ass|shit|regextest|nigg(a|er)))(?=[a-z]{2,10})(?![a-z]{11,})(?!\s)/i
+    const pronounRegex = /^(?!.*(penis|vagina|fuck|bitch|ass|shit|regextest|nigg(a|er)))(?=[a-z]{2,10})(?![a-z]{11,})(?!.+\s)/i
     const verifyPronoun = e => pronounRegex.test(e)
     function listItemsFromArray(e) {
         let message = ''
@@ -333,20 +350,11 @@ ${e[i].quantity} remaining\n`
     let quicktimeTimeout
     let tooSlow
     client.on('messageCreate', message => {
+        if (db.adminData.allowDadJoke) {
+            let dadMsg = message.content.match(/(?<=^\s?i\'?m\s+|^\s?i am\s+)[\w\s]+[\s\.]?$/gi)
+            if (dadMsg) message.channel.send(`Hello ${dadMsg}, I'm dad!`)
+        }
         try {
-            let messageAuthor = db[message.author.id]
-            const staminaCosts = {
-                get work() {
-                    if (messageAuthor.hasOwnProperty('ownCar')) return 3
-                    return 5
-                },
-                workCar: 3,
-                learn: 5,
-                bribe: 3,
-                arson: 15,
-                piracy: 3,
-            }
-
             let userBanned
             let userBannedReason
             for (let user in db.adminData.banned) {
@@ -362,20 +370,48 @@ ${e[i].quantity} remaining\n`
                 }
             }
             if (channelAllowed) {
-                function askQuestion() {
-                    for (let user in mathInProgress) {
-                        let question = `${Math.floor(Math.random() * 10)} ${['+', '-', '*'][Math.floor(Math.random() * 3)]} ${Math.floor(Math.random() * 10)}`
-                        mathInProgress[user].expectedResponse = eval(question)
-                        message.channel.send(question)
-                        tooSlow = setTimeout(() => {
-                            let messageChannel = message.channel
-                            messageChannel.send("TOO SLOW")
-                            db[user].money += mathInProgress[user].moneyEarned
-                            messageChannel.send(`You earned $${mathInProgress[user].moneyEarned}`)
-                            delete mathInProgress[user]
-                        }, 7500)
-                    }
-                }
+                                    //if we DONT have information for a user, then create an object for that user
+                                    if (!db.hasOwnProperty(message.author.id)) {
+                                        let datetest1 = new Date()
+                                        db[message.author.id] = {
+                                            'pingCount': 0,
+                                            'messageCount': 0,
+                                            'money': 100,
+                                            'netWorth': 100,
+                                            'level': 1,
+                                            'expToNextLevel': Math.ceil((1 ** 2) / 2 + 15),
+                                            'pronoun': null,
+                                            'username': message.author.username,
+                                            'timesWorked': 0,
+                                            'lastLogon': null,
+                                            'lastPiracy': null,
+                                            'lastPaidTax': datetest1.getDate(),
+                                            'taxRate': 0.15,
+                                            'taxMultiplier': 1,
+                                            'lastArson': 0,
+                                            'bribed': false,
+                                            'stamina': {
+                                                'current': 100,
+                                                'max': 100,
+                                                'gainMultiplier': 1,
+                                                'useMultiplier': 1
+                                            },
+                                            'inventory': [],
+                                            'broadcastStamina': false
+                                        }
+                                    }
+                                    let messageAuthor = db[message.author.id]
+                                    const staminaCosts = {
+                                        get work() {
+                                            if (messageAuthor.hasOwnProperty('ownCar')) return 3
+                                            return 5
+                                        },
+                                        workCar: 3,
+                                        learn: 5,
+                                        bribe: 3,
+                                        arson: 15,
+                                        piracy: 3,
+                                    }
                 for (let user in mathInProgress) {
                     if (message.author.id == user) {
                         if (parseInt(message.content.match(/-*[0-9]+/)[0]) == mathInProgress[user].expectedResponse) {
@@ -402,36 +438,7 @@ ${e[i].quantity} remaining\n`
                             } catch { }
                         })
                     }
-                    //if we DONT have information for a user, then create an object for that user
-                    if (!db.hasOwnProperty(message.author.id)) {
-                        let datetest1 = new Date()
-                        db[message.author.id] = {
-                            'pingCount': 0,
-                            'messageCount': 0,
-                            'money': 100,
-                            'netWorth': 100,
-                            'level': 1,
-                            'expToNextLevel': Math.ceil((1 ** 2) / 2 + 15),
-                            'pronoun': null,
-                            'username': message.author.username,
-                            'timesWorked': 0,
-                            'lastLogon': null,
-                            'lastPiracy': null,
-                            'lastPaidTax': datetest1.getDate(),
-                            'taxRate': 0.15,
-                            'taxMultiplier': 1,
-                            'lastArson': 0,
-                            'bribed': false,
-                            'stamina': {
-                                'current': 100,
-                                'max': 100,
-                                'gainMultiplier': 1,
-                                'useMultiplier': 1
-                            },
-                            'inventory': [],
-                            'broadcastStamina': false
-                        }
-                    }
+
                     //backwards compadibility by adding in keys not from previous versions
 
                     //wow such empty
@@ -457,7 +464,7 @@ ${e[i].quantity} remaining\n`
                     if (message.content.startsWith(prefix)) {
                         //if a message starts with the prefix, then it is a command and should NOT count as a message.
                         //this has to be here because crapbot will increment the message count when a user sends a message regardless of whether it starts with the prefix or not
-                        messageAuthor.messageCount-- 
+                        messageAuthor.messageCount--
                         function drawStaminaBar() {
                             const barSize = 20
                             const eachBarWorth = messageAuthor.stamina.max / barSize
@@ -547,6 +554,7 @@ ${drawStaminaBar()}`)
                                 switch (parsedMessage[0].toLowerCase()) {
                                     case 'restocktrader':
                                         restockTrader()
+                                        message.channel.send(listItemsFromArray(traderInStock))
                                         break
                                     case 'setmoney':
                                         let userId = parsedMessage[1].match(/\d+/)[0]
@@ -649,18 +657,25 @@ Please ensure that you're using a mention to unban a user.`)
                                         message.channel.send('Saved database')
                                         break
                                     case 'shutdown':
-                                        message.channel.send('Shutting down!')
-                                        process.exit()
+                                        message.channel.send('Shutting down!').then(_ => process.exit())
                                     case 'allusers':
                                         for (let item in db) {
                                             if (item !== 'messagesWatched') {
                                                 message.channel.send(JSON.stringify(db[item]))
                                             }
                                         }
+                                        break
+                                    case 'toggleallowdadjoke':
+                                        if (db.adminData.allowDadJoke) {
+                                            db.adminData.allowDadJoke = false
+                                        } else {
+                                            db.adminData.allowDadJoke = true
+                                        }
+                                        message.channel.send(`db.adminData.allowDadJoke is now **${db.adminData.allowDadJoke}**`)
                                 }
                             } else {
                                 const adminCommands = ['allusers', 'shutdown', 'save', 'toggledevmode', 'unban', 'ban', 'removeallowedchannel', 'addallowedchannel',
-                                    'setpronoun', 'setmoney', 'restocktrader']
+                                    'setpronoun', 'setmoney', 'restocktrader', 'toggleallowdadjoke']
                                 if (adminCommands.includes(parsedMessage[0].toLowerCase())) message.channel.send("Hey, you're not an admin! What are you doing?")
                             }
                             switch (parsedMessage[0].toLowerCase()) {
@@ -1304,7 +1319,8 @@ Times worked: ${userInfo.timesWorked}`)
                 }
             }
         } catch (e) {
-            message.channel.send(`Crapbot has encountered an error! (${e.message})`)
+            console.log(e)
+            message.channel.send(`Crapbot has encountered an error! (${e})`)
         }
     })
     client.on('ready', () => {
