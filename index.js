@@ -1,11 +1,21 @@
 //get ready for code worse than yandere simulator
 "use strict"
-const { Client, Intents } = require('discord.js');
-const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_PRESENCES] });
+const {
+    Client,
+    Intents
+} = require('discord.js');
+const client = new Client({
+    intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_PRESENCES]
+});
 const fs = require('fs');
+const {
+    exit
+} = require('process');
 
 //thigns to manually change 
-const token = process.argv[2]
+//get the token
+const alltokens = JSON.parse(fs.readFileSync('./alltokens.json', 'utf-8'))
+const token = alltokens[process.argv[2]]
 const prefix = '!'
 const adminId = ['691864484079337543', '501587282395004929']
 const helpMessages = {
@@ -66,6 +76,7 @@ These commands are only avaliable to the admin whose ID exists within the index.
 \`echo\`: crapbot will say what you say!`
 }
 let db
+
 function askQuestion() {
     for (let user in mathInProgress) {
         let question = `${Math.floor(Math.random() * 10)} ${['+', '-', '*'][Math.floor(Math.random() * 3)]} ${Math.floor(Math.random() * 10)}`
@@ -101,6 +112,7 @@ const dbDefault = {
         allowedChannels: []
     }
 }
+
 function cloneDB(input) {
     let output = {}
     for (let item in input) {
@@ -117,6 +129,7 @@ function cloneDB(input) {
     return output
 }
 let mathInProgress = {}
+
 function readDB() {
     console.log("Reading database...")
     return new Promise((resolve, reject) => {
@@ -138,6 +151,7 @@ function readDB() {
 let usersWithoutPronouns = []
 //why use many lines when you can use one?
 const save = _ => fs.writeFile('./basicDB.txt', JSON.stringify(db, null, 1), (error) => error ? console.log(error.message) : console.log(`Saved Database at ${timeConverter(new Date().getTime() / 1000)}`))
+
 function timeConverter(UNIX_timestamp) {
     var a = new Date(UNIX_timestamp * 1000);
     var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -172,6 +186,7 @@ readDB().then(results => {
             }
         }
     }, 10000)
+
     function commentNo(a) {
         a = a.toString().split('')
         let output = []
@@ -193,8 +208,7 @@ readDB().then(results => {
         output.pop()
         return output.join('').concat(tempSliced.join(''))
     }
-    const traderItems = [
-        {
+    const traderItems = [{
             name: 'Potion of Instant Stamina',
             description: 'Instantly gives you 500 stamina, regardless of your stamina cap!',
             costDefault: 25500,
@@ -241,12 +255,14 @@ readDB().then(results => {
         }
     ]
     let traderInStock = []
+
     function traderIncludesItem(name, array = traderInStock) {
         for (let i = 0; i < array.length; i++) {
             if (array[i].name.toLowerCase() == name.toLowerCase()) return true
         }
         return false
     }
+
     function restockTrader() {
         traderInStock = []
         const traderItemCount = 2
@@ -265,7 +281,7 @@ readDB().then(results => {
     setInterval(restockTrader, 120 * 1000)
     const traderItemFunctions = {
         "potion of instant knowledge": {
-            customCode: function (messageAuthor, messageChannel) {
+            customCode: function(messageAuthor, messageChannel) {
                 messageAuthor.expToNextLevel -= 50000
                 messageChannel.send(`Successfully used instant knowledge potion!`)
             },
@@ -273,7 +289,7 @@ readDB().then(results => {
             condition: _ => true
         },
         "potion of instant stamina": {
-            customCode: function (messageAuthor, messageChannel) {
+            customCode: function(messageAuthor, messageChannel) {
                 messageAuthor.stamina.current += 500
                 messageChannel.send(`Consumed a potion of instant stamina for ${messageAuthor.stamina.current} stamina!`)
             },
@@ -281,7 +297,7 @@ readDB().then(results => {
             condition: _ => true
         },
         'wildcard ticket': {
-            customCode: function (messageAuthor, messageChannel) {
+            customCode: function(messageAuthor, messageChannel) {
                 const moneyGained = messageAuthor.netWorth * 0.01
                 messageAuthor.money += moneyGained
                 messageChannel.send(`You used a wildcard for $${commentNo(Math.round(moneyGained * 100) / 100)}. You now have $${commentNo(Math.round(messageAuthor.money * 100) / 100)}`)
@@ -299,13 +315,13 @@ readDB().then(results => {
             subtractItem: false
         },
         'godly dice': {
-            condition: function (messageAuthor, messageChannel) {
+            condition: function(messageAuthor, messageChannel) {
                 if (messageAuthor.money > 100000) return true
                 messageChannel.send("You do not have enough money to roll the dice!")
                 return false
             },
             subtractItem: true,
-            customCode: function (messageAuthor, messageChannel) {
+            customCode: function(messageAuthor, messageChannel) {
                 if (Math.random() < .75) {
                     messageAuthor.money += 1000000
                     messageChannel.send(`You won big! One million dollars has been added to your account! You now have ${commentNo(Math.round(messageAuthor.money * 100) / 100)}`)
@@ -318,7 +334,7 @@ readDB().then(results => {
         'omega potion': {
             condition: _ => true,
             subtractItem: true,
-            customCode: function (messageAuthor, messageChannel) {
+            customCode: function(messageAuthor, messageChannel) {
                 messageAuthor.stamina.max += 15
                 messageAuthor.stamina.current += 15
                 messageChannel.send(`You increased your cap by 15! You now have ${messageAuthor.stamina.max} max stamina.`)
@@ -331,6 +347,7 @@ readDB().then(results => {
     }
     const pronounRegex = /^(?!.*(penis|vagina|fuck|bitch|ass|shit|regextest|nigg(a|er)))(?=[a-z]{2,10})(?![a-z]{11,})(?!.+\s)/i
     const verifyPronoun = e => pronounRegex.test(e)
+
     function listItemsFromArray(e) {
         let message = ''
         for (let i = 0; i < e.length; i++) {
@@ -435,7 +452,7 @@ ${e[i].quantity} remaining\n`
                                 if (message.content.toLowerCase().includes(e.toLowerCase()) && !message.content.includes('removeWatch')) {
                                     client.users.cache.get(thing).send(`User **${message.author.username}** has sent the phrase **${e}** in the message **${message.content}** on **${timeConverter(message.createdTimestamp / 1000)}**`)
                                 }
-                            } catch { }
+                            } catch {}
                         })
                     }
                     if (message.content.toLowerCase().includes('fuck you crapbot')) {
@@ -489,6 +506,7 @@ ${e[i].quantity} remaining\n`
                         //if a message starts with the prefix, then it is a command and should NOT count as a message.
                         //this has to be here because crapbot will increment the message count when a user sends a message regardless of whether it starts with the prefix or not
                         messageAuthor.messageCount--
+
                         function drawStaminaBar() {
                             const barSize = 20
                             const eachBarWorth = messageAuthor.stamina.max / barSize
@@ -505,6 +523,7 @@ ${e[i].quantity} remaining\n`
                             }
                             return output
                         }
+
                         function checkStamina(amount) {
                             //check if the stamina is enough, and if it is, subtract that stamina from the player's
                             if (messageAuthor.stamina.current - amount * messageAuthor.stamina.useMultiplier > 0) {
@@ -568,6 +587,7 @@ ${drawStaminaBar()}`)
                                 if (!nextSpliceIndex) nextSpliceIndex = unparsedMessage.length - 1
                                 parsedMessage.push(unparsedMessage.splice(0, nextSpliceIndex + 1).join('').replaceAll(/'|"|^\s|\s$/g, ''))
                             }
+
                             function listAllChannels() {
                                 let allChannels = message.guild.channels.cache.filter(e => e.type == 'GUILD_TEXT')
                                 //I'm so sorry but it's the only way i can get it working
@@ -674,7 +694,7 @@ Please ensure that you're using a mention to unban a user.`)
                                                 client.user.setActivity('Avaliable for you to rage at because this bot has terrible programming!')
                                             }
                                             message.channel.send('Toggled dev mode')
-                                        } catch { }
+                                        } catch {}
                                         break
                                     case 'save':
                                         save()
@@ -699,7 +719,8 @@ Please ensure that you're using a mention to unban a user.`)
                                 }
                             } else {
                                 const adminCommands = ['allusers', 'shutdown', 'save', 'toggledevmode', 'unban', 'ban', 'removeallowedchannel', 'addallowedchannel',
-                                    'setpronoun', 'setmoney', 'restocktrader', 'toggleallowdadjoke']
+                                    'setpronoun', 'setmoney', 'restocktrader', 'toggleallowdadjoke'
+                                ]
                                 if (adminCommands.includes(parsedMessage[0].toLowerCase())) message.channel.send("Hey, you're not an admin! What are you doing?")
                             }
                             switch (parsedMessage[0].toLowerCase()) {
@@ -813,7 +834,9 @@ Please ensure that you're using a mention to unban a user.`)
                                                         userToPay.money += amount
                                                         userToPay.netWorth += amount
                                                         message.channel.send(`Paid ${userToPay.username} $${amount}`)
-                                                    } catch (e) { message.channel.send(`Error in paying user (${e.message})`) }
+                                                    } catch (e) {
+                                                        message.channel.send(`Error in paying user (${e.message})`)
+                                                    }
                                                 } else {
                                                     message.channel.send(`You do not have that much money! (Currently have $${messageAuthor.money})`)
                                                 }
@@ -846,20 +869,32 @@ Please ensure that you're using a mention to unban a user.`)
                                     for (let item in db.adminData.mostloved) {
                                         let allowPush = true
                                         if (sorted.length === 0) {
-                                            sorted.push({ 'name': item, 'loveCount': db.adminData.mostloved[item] })
+                                            sorted.push({
+                                                'name': item,
+                                                'loveCount': db.adminData.mostloved[item]
+                                            })
                                             allowPush = false
                                         }
                                         for (let i = 0; i < sorted.length; i++) {
                                             if (allowPush) {
                                                 if (i == 0 && sorted[0].loveCount >= db.adminData.mostloved[item]) {
-                                                    sorted.unshift({ 'name': item, 'loveCount': db.adminData.mostloved[item] })
+                                                    sorted.unshift({
+                                                        'name': item,
+                                                        'loveCount': db.adminData.mostloved[item]
+                                                    })
                                                     break
                                                 } else if (i == sorted.length - 1 && sorted[sorted.length - 1].loveCount <= db.adminData.mostloved[item]) {
-                                                    sorted.push({ 'name': item, 'loveCount': db.adminData.mostloved[item] })
+                                                    sorted.push({
+                                                        'name': item,
+                                                        'loveCount': db.adminData.mostloved[item]
+                                                    })
                                                     break
                                                 } else if (i >= 1) {
                                                     if (sorted[i - 1].loveCount <= db.adminData.mostloved[item] && sorted[i].loveCount >= db.adminData.mostloved[item]) {
-                                                        sorted.splice(i, 0, { 'name': item, 'loveCount': db.adminData.mostloved[item] });
+                                                        sorted.splice(i, 0, {
+                                                            'name': item,
+                                                            'loveCount': db.adminData.mostloved[item]
+                                                        });
                                                         break
                                                     }
                                                 }
@@ -871,7 +906,7 @@ Please ensure that you're using a mention to unban a user.`)
                                     for (let i = sorted.length - 1; i >= sorted.length - quantity; i--) {
                                         try {
                                             stringToSend += `${sorted.length - i}. ${sorted[i].name} ${sorted[i].loveCount} loves\n`
-                                        } catch (e) { }
+                                        } catch (e) {}
                                     }
                                     if (stringToSend) {
                                         message.channel.send(stringToSend)
@@ -914,19 +949,19 @@ Please ensure that you're using a mention to unban a user.`)
                                         'computer': {
                                             price: 15000,
                                             'description': ':computer:**computer ($15000)**: give you $0.1 a second. Can be purchased multiple times',
-                                            condition: function () {
+                                            condition: function() {
                                                 return true
                                             }
                                         },
                                         'lottery': {
                                             price: 300,
                                             description: '**:tickets:Lottery($300)**: Gives you a small chance of winning big',
-                                            condition: function (amount) {
+                                            condition: function(amount) {
                                                 if (amount < 10000) return true
                                                 message.channel.send("Buy limit for lottery is 10,000 to prevent lag.")
                                                 return false
                                             },
-                                            customCode: function (amount) {
+                                            customCode: function(amount) {
                                                 if (amount < 5) {
                                                     if (Math.random() < 0.004) {
                                                         messageAuthor.money += 7500
@@ -948,7 +983,7 @@ Please ensure that you're using a mention to unban a user.`)
                                         },
                                         'car': {
                                             price: 75000,
-                                            condition: function () {
+                                            condition: function() {
                                                 if (messageAuthor.hasOwnProperty('ownCar')) {
                                                     message.channel.send('You already have a car!')
                                                     return false
@@ -956,20 +991,20 @@ Please ensure that you're using a mention to unban a user.`)
                                                 return true
                                             },
                                             'description': '**🚗Car($75000)**: can only be brought once. Gives you a chance to pick up hitchhikers while working to earn some extra cash',
-                                            customCode: function () {
+                                            customCode: function() {
                                                 messageAuthor.ownCar = true
                                             }
                                         },
                                         'house': {
                                             price: 100000,
-                                            condition: function () {
+                                            condition: function() {
                                                 return true
                                             },
                                             'description': '**🏠House($100,000)**: an expensive investment, but nets you $1 per second!',
                                         },
                                         'mansion': {
                                             price: 10000000,
-                                            condition: function () {
+                                            condition: function() {
                                                 if (db.adminData.stuffOwned.house[message.author.id] >= 10) {
                                                     return true
                                                 } else {
@@ -1114,7 +1149,7 @@ Please ensure that you're using a mention to unban a user.`)
                                                     break
                                                 }
                                             }
-                                            
+
                                             if (!itemFound) {
                                                 if (traderIncludesItem(parsedMessage[2], traderItems)) {
                                                     message.channel.send(`Trader is currently not selling ${parsedMessage[2]}. Use \`${prefix}trader list\` to see what the trader is selling.`)
@@ -1192,7 +1227,8 @@ Please ensure that you're using a mention to unban a user.`)
                                             'fried some egg fried rice',
                                             'mowed the lawn',
                                             'roasted people on StackOverflow',
-                                            'learned how to hack']
+                                            'learned how to hack'
+                                        ]
                                         if (messageAuthor.hasOwnProperty('ownCar') && Math.random() < .2) {
                                             let amountEarnedFromStranger = Math.round(Math.random() * 50 * (messageAuthor.level) + 3) / 10 + messageAuthor.level * 10
                                             messageAuthor.money += amountEarnedFromStranger
@@ -1276,25 +1312,39 @@ Times worked: ${userInfo.timesWorked}`)
                                             let username1
                                             try {
                                                 username1 = db[specificUser].username;
-                                            } catch { username1 = specificUser }
+                                            } catch {
+                                                username1 = specificUser
+                                            }
                                             let allowPush = true
                                             if (sorted.length === 0) {
-                                                sorted.push({ username: username1, money: db[specificUser].netWorth }) //start off the sort by pushing the element in sorted so other values can compare to it
+                                                sorted.push({
+                                                    username: username1,
+                                                    money: db[specificUser].netWorth
+                                                }) //start off the sort by pushing the element in sorted so other values can compare to it
                                                 allowPush = false
                                             }
                                             for (let i = 0; i < sorted.length; i++) {
                                                 if (allowPush) {
                                                     //check if a number can be put at the start of the sorted array
                                                     if (sorted[0].money >= db[specificUser].netWorth) {
-                                                        sorted.unshift({ username: username1, money: db[specificUser].netWorth })
+                                                        sorted.unshift({
+                                                            username: username1,
+                                                            money: db[specificUser].netWorth
+                                                        })
                                                         break
                                                         //check if the number can be put at the end of the sorted array
                                                     } else if (sorted[sorted.length - 1].money <= db[specificUser].netWorth) {
-                                                        sorted.push({ username: username1, money: db[specificUser].netWorth })
+                                                        sorted.push({
+                                                            username: username1,
+                                                            money: db[specificUser].netWorth
+                                                        })
                                                         break
                                                     } else if (i >= 1) {
                                                         if (sorted[i - 1].money <= db[specificUser].netWorth && sorted[i].money >= db[specificUser].netWorth) {
-                                                            sorted.splice(i, 0, { username: username1, money: db[specificUser].netWorth });
+                                                            sorted.splice(i, 0, {
+                                                                username: username1,
+                                                                money: db[specificUser].netWorth
+                                                            });
                                                             break
                                                         }
                                                     }
@@ -1310,7 +1360,7 @@ Times worked: ${userInfo.timesWorked}`)
                                         try {
                                             let money2 = commentNo(Math.round(sorted[i].money * 100) / 100)
                                             stringToSendlove += `${sorted.length - i}. ${sorted[i].username} with a net worth of $${money2}\n`
-                                        } catch (e) { }
+                                        } catch (e) {}
                                     }
                                     message.channel.send(stringToSendlove)
                             }
@@ -1359,9 +1409,23 @@ Times worked: ${userInfo.timesWorked}`)
         console.log(`Logged in as ${client.user.tag}!`);
         client.user.setActivity('Avaliable for you to rage at because this bot has terrible programming!')
     });
-    client.on("presenceUpdate", function (oldMember, newMember) {
+    client.on("presenceUpdate", function(oldMember, newMember) {
         // console.log(`a guild member's presence changes`, oldMember, newMember);
     });
 })
-
+process.stdin.on('data', e => {
+    e = e.toString().trim()
+    switch (e) {
+        case 'shutdown':
+            save()
+            console.log('Saved DB')
+            process.exit()
+            break
+        case 'hello':
+            console.log('Hello!')
+            break
+        default:
+            console.log(`command ${e} not reconised`)
+    }
+})
 client.login(token);
