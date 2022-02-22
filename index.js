@@ -537,7 +537,7 @@ ${drawStaminaBar()}`)
                         }
                         if (!userBanned) {
                             //paying tax
-                            if (true) {
+                            if (messageAuthor.lastPaidTax != date.getDate()) {
                                 //determine a person's tax bracket by their net worth
                                 //yanderedev can you please hire me
                                 if (messageAuthor.money < 10000) {
