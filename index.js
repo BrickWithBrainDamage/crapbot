@@ -537,8 +537,7 @@ ${drawStaminaBar()}`)
                         }
                         if (!userBanned) {
                             //paying tax
-                            let date = new Date()
-                            if (messageAuthor.lastPaidTax != date.getDate()) {
+                            if (true) {
                                 //determine a person's tax bracket by their net worth
                                 //yanderedev can you please hire me
                                 if (messageAuthor.money < 10000) {
@@ -554,8 +553,9 @@ ${drawStaminaBar()}`)
                                 } else {
                                     messageAuthor.taxRate = .35
                                 }
-                                messageAuthor.lastPaidTax = date.getDate()
+                                messageAuthor.lastPaidTax = new Date().getDate()
                                 let amountToPay = messageAuthor.money * messageAuthor.taxRate * messageAuthor.taxMultiplier
+                                if (amountToPay > messageAuthor.money) amountToPay = messageAuthor.money
                                 if (messageAuthor.bribed) amountToPay = amountToPay / 2
                                 messageAuthor.money -= amountToPay
                                 messageAuthor.netWorth -= amountToPay
