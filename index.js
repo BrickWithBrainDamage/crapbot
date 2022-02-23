@@ -537,6 +537,8 @@ ${drawStaminaBar()}`)
                         }
                         if (!userBanned) {
                             //paying tax
+                            const date = new Date();
+                            console.log(date.getDate())
                             if (messageAuthor.lastPaidTax != date.getDate()) {
                                 //determine a person's tax bracket by their net worth
                                 //yanderedev can you please hire me
@@ -553,7 +555,7 @@ ${drawStaminaBar()}`)
                                 } else {
                                     messageAuthor.taxRate = .35
                                 }
-                                messageAuthor.lastPaidTax = new Date().getDate()
+                                messageAuthor.lastPaidTax = date.getDate()
                                 let amountToPay = messageAuthor.money * messageAuthor.taxRate * messageAuthor.taxMultiplier
                                 if (amountToPay > messageAuthor.money) amountToPay = messageAuthor.money
                                 if (messageAuthor.bribed) amountToPay = amountToPay / 2
